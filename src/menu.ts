@@ -16,6 +16,7 @@ import { allPlugins } from 'virtual:plugins';
 import { APPLICATION_NAME, setLanguage, t } from '@/i18n';
 
 import * as config from './config';
+import { applyAppearance } from '@/appearance';
 import { getAllMenuTemplate, loadAllMenuPlugins } from './loader/menu';
 import { restart } from './providers/app-controls';
 import { startingPages } from './providers/extracted-data';
@@ -293,6 +294,31 @@ export const mainMenuTemplate = async (
                       'options.swapLikeButtonsOrder',
                       item.checked,
                     );
+                  },
+                },
+              ],
+            },
+            {
+              label: 'Appearance',
+              submenu: [
+                {
+                  label: 'Default (YouTube Music)',
+                  type: 'radio',
+                  checked: config.get('appearance.preset') !== 'phosphor',
+                  click() {
+                    config.set('appearance.preset', 'default');
+                    void applyAppearance(win);
+                    innerRefreshMenu();
+                  },
+                },
+                {
+                  label: 'Phosphor',
+                  type: 'radio',
+                  checked: config.get('appearance.preset') === 'phosphor',
+                  click() {
+                    config.set('appearance.preset', 'phosphor');
+                    void applyAppearance(win);
+                    innerRefreshMenu();
                   },
                 },
               ],
