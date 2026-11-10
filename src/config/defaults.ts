@@ -38,6 +38,9 @@ export interface DefaultConfig {
     customWindowTitle: string;
   };
   'plugins': Record<string, unknown>;
+  appearance: {
+    preset: 'default' | 'phosphor';
+  };
 }
 
 export const defaultConfig: DefaultConfig = {
@@ -75,4 +78,7 @@ export const defaultConfig: DefaultConfig = {
     customWindowTitle: 'MusicApp',
   },
   'plugins': {},
+  appearance: {
+    preset: 'default',
+  },
 };

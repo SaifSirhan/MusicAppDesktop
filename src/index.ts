@@ -29,6 +29,7 @@ import { parse } from 'node-html-parser';
 import { languageResources } from 'virtual:i18n';
 import { allPlugins, mainPlugins } from 'virtual:plugins';
 
+import { initAppearance } from '@/appearance';
 import * as config from '@/config';
 import { APPLICATION_NAME, loadI18n, setLanguage, t } from '@/i18n';
 import {
@@ -379,6 +380,7 @@ async function createMainWindow() {
 
   await initHook(win);
   initTheme(win);
+  initAppearance(win);
 
   await loadAllMainPlugins(win);
 
