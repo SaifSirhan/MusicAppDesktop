@@ -13,10 +13,11 @@ import { satisfies } from 'semver';
 import { languageResources } from 'virtual:i18n';
 import { allPlugins } from 'virtual:plugins';
 
+import { applyAppearance } from '@/appearance';
 import { APPLICATION_NAME, setLanguage, t } from '@/i18n';
+import { LoggerPrefix } from '@/utils';
 
 import * as config from './config';
-import { applyAppearance } from '@/appearance';
 import { getAllMenuTemplate, loadAllMenuPlugins } from './loader/menu';
 import { restart } from './providers/app-controls';
 import { startingPages } from './providers/extracted-data';
@@ -307,7 +308,13 @@ export const mainMenuTemplate = async (
                   checked: config.get('appearance.preset') !== 'phosphor',
                   click() {
                     config.set('appearance.preset', 'default');
-                    void applyAppearance(win);
+                    applyAppearance(win).catch((error) => {
+                      console.warn(
+                        LoggerPrefix,
+                        'Failed to apply appearance CSS',
+                        error,
+                      );
+                    });
                     innerRefreshMenu();
                   },
                 },
@@ -317,7 +324,13 @@ export const mainMenuTemplate = async (
                   checked: config.get('appearance.preset') === 'phosphor',
                   click() {
                     config.set('appearance.preset', 'phosphor');
-                    void applyAppearance(win);
+                    applyAppearance(win).catch((error) => {
+                      console.warn(
+                        LoggerPrefix,
+                        'Failed to apply appearance CSS',
+                        error,
+                      );
+                    });
                     innerRefreshMenu();
                   },
                 },

@@ -1,11 +1,10 @@
-import type { BrowserWindow, WebContents } from 'electron';
-
 import * as config from '@/config';
 import { LoggerPrefix } from '@/utils';
 
 import { buildAppearanceCss, parseAppearancePreset } from './buildCss';
-
 import phosphorCss from './phosphor.css?inline';
+
+import type { BrowserWindow, WebContents } from 'electron';
 
 const injected = new WeakMap<WebContents, string>();
 
@@ -36,7 +35,7 @@ export async function applyAppearance(win: BrowserWindow): Promise<void> {
 export function initAppearance(win: BrowserWindow): void {
   win.webContents.on('did-finish-load', () => {
     injected.delete(win.webContents);
-    void applyAppearance(win).catch((error) => {
+    applyAppearance(win).catch((error) => {
       console.warn(LoggerPrefix, 'Failed to apply appearance CSS', error);
     });
   });
