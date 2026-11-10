@@ -1,6 +1,7 @@
 import type { BrowserWindow, WebContents } from 'electron';
 
 import * as config from '@/config';
+import { LoggerPrefix } from '@/utils';
 
 import { buildAppearanceCss, parseAppearancePreset } from './buildCss';
 
@@ -9,11 +10,18 @@ import phosphorCss from './phosphor.css?inline';
 const injected = new WeakMap<WebContents, string>();
 
 export async function applyAppearance(win: BrowserWindow): Promise<void> {
+  if (win.isDestroyed() || win.webContents.isDestroyed()) return;
+
   const webContents = win.webContents;
   const existingKey = injected.get(webContents);
 
   if (existingKey) {
-    await webContents.removeInsertedCSS(existingKey);
+    try {
+      await webContents.removeInsertedCSS(existingKey);
+    } catch (error) {
+      // The document (and its stylesheet) is already gone with the window.
+      console.warn(LoggerPrefix, 'Failed to remove appearance CSS', error);
+    }
     injected.delete(webContents);
   }
 
@@ -28,6 +36,8 @@ export async function applyAppearance(win: BrowserWindow): Promise<void> {
 export function initAppearance(win: BrowserWindow): void {
   win.webContents.on('did-finish-load', () => {
     injected.delete(win.webContents);
-    void applyAppearance(win);
+    void applyAppearance(win).catch((error) => {
+      console.warn(LoggerPrefix, 'Failed to apply appearance CSS', error);
+    });
   });
 }
