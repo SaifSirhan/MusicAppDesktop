@@ -31,6 +31,7 @@ import { allPlugins, mainPlugins } from 'virtual:plugins';
 
 import { initAppearance } from '@/appearance';
 import * as config from '@/config';
+import { applyBrandDefaults } from '@/config/brand-defaults';
 import { APPLICATION_NAME, loadI18n, setLanguage, t } from '@/i18n';
 import {
   forceLoadMainPlugin,
@@ -69,6 +70,9 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit();
 }
+
+// Seed curated plugin configs before any plugin config is read
+applyBrandDefaults();
 
 protocol.registerSchemesAsPrivileged([
   {
