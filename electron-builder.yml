@@ -1,10 +1,11 @@
-appId: "com.github.th-ch.\u0079\u006f\u0075\u0074\u0075\u0062\u0065\u002d\u006d\u0075\u0073\u0069\u0063"
-productName: "\u0059\u006f\u0075\u0054\u0075\u0062\u0065\u0020\u004d\u0075\u0073\u0069\u0063"
+appId: "com.sharl.musicapp.desktop"
+productName: "MusicApp"
 files:
   - '!*'
   - dist
   - assets
   - license
+  - NOTICE
   - '!node_modules'
   - 'node_modules/custom-electron-prompt/**'
   - 'node_modules/@ghostery/adblocker-electron-preload/**'
@@ -25,26 +26,22 @@ mac:
 win:
   icon: assets/generated/icons/win/icon.ico
   target:
-    - target: nsis-web
+    - target: nsis
       arch:
         - x64
-        - ia32
-        - arm64
-    - target: portable
-      arch:
-        - x64
-        - ia32
-        - arm64
   compression: maximum
-nsisWeb:
-  runAfterFinish: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: "MusicApp-Setup-${version}.${ext}"
 linux:
   icon: assets/generated/icons/png
   category: AudioVideo
   syncDesktopName: true
   desktop:
     entry:
-      StartupWMClass: "com.github.th-ch.\u0079\u006f\u0075\u0074\u0075\u0062\u0065\u002d\u006d\u0075\u0073\u0069\u0063"
+      StartupWMClass: "com.sharl.musicapp.desktop"
   target:
     - target: AppImage
       arch:
@@ -77,10 +74,10 @@ linux:
         - arm64
         - armv7l
 appImage:
-  description: "\u0059\u006f\u0075\u0054\u0075\u0062\u0065\u0020\u004d\u0075\u0073\u0069\u0063 Desktop App bundled with custom plugins"
+  description: "MusicApp Desktop - a Phosphor-themed YouTube Music client"
   category: AudioVideo
 flatpak:
-  description: "\u0059\u006f\u0075\u0054\u0075\u0062\u0065\u0020\u004d\u0075\u0073\u0069\u0063 Desktop App bundled with custom plugins"
+  description: "MusicApp Desktop - a Phosphor-themed YouTube Music client"
   category: AudioVideo
   runtimeVersion: '24.08'
   baseVersion: '24.08'
@@ -120,3 +117,6 @@ snap:
         interface: mpris
 directories:
   output: ./pack/
+publish:
+  provider: generic
+  url: https://github.com/SaifSirhan/Musicapp/releases/download/desktop-latest

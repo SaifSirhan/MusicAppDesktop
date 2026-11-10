@@ -35,7 +35,7 @@ export interface DefaultConfig {
     overrideUserAgent: boolean;
     usePodcastParticipantAsArtist: boolean;
     themes: string[];
-    customWindowTitle?: string;
+    customWindowTitle: string;
   };
   'plugins': Record<string, unknown>;
 }
@@ -72,6 +72,7 @@ export const defaultConfig: DefaultConfig = {
     overrideUserAgent: false,
     usePodcastParticipantAsArtist: false,
     themes: [],
+    customWindowTitle: 'MusicApp',
   },
   'plugins': {},
 };
