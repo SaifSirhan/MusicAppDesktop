@@ -66,7 +66,8 @@ unhandled({
 
 // Prevent window being garbage collected
 let mainWindow: Electron.BrowserWindow | null;
-electronUpdater.autoUpdater.autoDownload = false;
+electronUpdater.autoUpdater.autoDownload = true;
+electronUpdater.autoUpdater.autoInstallOnAppQuit = true;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -818,49 +819,32 @@ app.whenReady().then(async () => {
       electronUpdater.autoUpdater.checkForUpdatesAndNotify();
       clearTimeout(updateTimeout);
     }, 2000);
-    electronUpdater.autoUpdater.on('update-available', () => {
-      const downloadLink =
-        'https://github.com/SaifSirhan/MusicAppDesktop/releases/tag/desktop-latest';
+    // The feed is downloaded in the background by electron-updater (autoDownload).
+    // Ask before restarting; "Later" installs the update on next quit
+    // (autoInstallOnAppQuit).
+    electronUpdater.autoUpdater.on('update-downloaded', (info) => {
       const dialogOptions: Electron.MessageBoxOptions = {
         type: 'info',
-        buttons: [
-          t('main.dialog.update-available.buttons.ok'),
-          t('main.dialog.update-available.buttons.download'),
-          t('main.dialog.update-available.buttons.disable'),
-        ],
-        title: t('main.dialog.update-available.title'),
-        message: t('main.dialog.update-available.message'),
-        detail: t('main.dialog.update-available.detail', { downloadLink }),
-        defaultId: 1,
-        cancelId: 0,
+        buttons: ['Restart now', 'Later'],
+        title: 'Update ready',
+        message: `MusicApp ${info.version} is ready to install.`,
+        detail:
+          'Restart now to finish updating. Choosing Later installs it when you quit.',
+        defaultId: 0,
+        cancelId: 1,
       };
 
-      let dialogPromise: Promise<Electron.MessageBoxReturnValue>;
-      if (mainWindow) {
-        dialogPromise = dialog.showMessageBox(mainWindow, dialogOptions);
-      } else {
-        dialogPromise = dialog.showMessageBox(dialogOptions);
-      }
+      const dialogPromise = mainWindow
+        ? dialog.showMessageBox(mainWindow, dialogOptions)
+        : dialog.showMessageBox(dialogOptions);
 
-      dialogPromise.then((dialogOutput) => {
-        switch (dialogOutput.response) {
-          // Download
-          case 1: {
-            shell.openExternal(downloadLink);
-            break;
+      dialogPromise
+        .then((dialogOutput) => {
+          if (dialogOutput.response === 0) {
+            electronUpdater.autoUpdater.quitAndInstall(false, true);
           }
-
-          // Disable updates
-          case 2: {
-            config.set('options.autoUpdates', false);
-            break;
-          }
-
-          case 0: {
-            break;
-          }
-        }
-      });
+        })
+        .catch(() => undefined);
     });
   }
 
