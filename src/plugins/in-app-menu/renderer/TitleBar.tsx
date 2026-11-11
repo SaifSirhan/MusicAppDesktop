@@ -19,6 +19,7 @@ import { IconButton } from './IconButton';
 import { MenuButton } from './MenuButton';
 import { Panel } from './Panel';
 import { PanelItem } from './PanelItem';
+import { SettingsPanel } from './SettingsPanel';
 import { WindowController } from './WindowController';
 
 import type { InAppMenuConfig } from '../constants';
@@ -183,6 +184,7 @@ export const TitleBar = (props: TitleBarProps) => {
   const [collapsed, setCollapsed] = createSignal(props.initialCollapsed);
   const [ignoreTransition, setIgnoreTransition] = createSignal(false);
   const [openTarget, setOpenTarget] = createSignal<HTMLElement | null>(null);
+  const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [menu, setMenu] = createSignal<Menu | null>(null);
   const [mouseY, setMouseY] = createSignal(0);
 
@@ -275,8 +277,8 @@ export const TitleBar = (props: TitleBarProps) => {
       setMenu(data() ?? null);
       setIgnoreTransition(false);
     });
-    props.ipc.on('toggle-in-app-menu', () => {
-      setCollapsed(!collapsed());
+    props.ipc.on('set-in-app-menu-collapsed', (value: unknown) => {
+      setCollapsed(Boolean(value));
     });
 
     props.ipc.on('window-maximize', refetchMaximize);
@@ -314,6 +316,10 @@ export const TitleBar = (props: TitleBarProps) => {
     }
   });
 
+  createEffect(() => {
+    if (collapsed()) setOpenTarget(null);
+  });
+
   onCleanup(() => {
     window.removeEventListener('mousemove', listener);
   });
@@ -321,6 +327,7 @@ export const TitleBar = (props: TitleBarProps) => {
   return (
     <nav
       class={titleStyle()}
+      data-collapsed={collapsed()}
       data-macos={props.isMacOS}
       data-show={mouseY() < 32}
       data-ytmd-main-panel={true}
@@ -335,6 +342,20 @@ export const TitleBar = (props: TitleBarProps) => {
         <svg height={16} viewBox={'0 0 24 24'} width={16}>
           <path
             d="M3 17h12a1 1 0 0 1 .117 1.993L15 19H3a1 1 0 0 1-.117-1.993L3 17h12H3Zm0-6h18a1 1 0 0 1 .117 1.993L21 13H3a1 1 0 0 1-.117-1.993L3 11h18H3Zm0-6h15a1 1 0 0 1 .117 1.993L18 7H3a1 1 0 0 1-.117-1.993L3 5h15H3Z"
+            fill="currentColor"
+          />
+        </svg>
+      </IconButton>
+      <IconButton
+        aria-label="Settings"
+        onClick={() => {
+          setOpenTarget(null);
+          setSettingsOpen(!settingsOpen());
+        }}
+      >
+        <svg height={16} viewBox={'0 0 24 24'} width={16}>
+          <path
+            d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.1 7.1 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.74 8.87a.5.5 0 0 0 .12.64l2.03 1.58c-.04.3-.06.61-.06.94s.02.64.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.61.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.48 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2Z"
             fill="currentColor"
           />
         </svg>
@@ -383,48 +404,50 @@ export const TitleBar = (props: TitleBarProps) => {
           );
         }}
       >
-        <Show when={!collapsed()}>
-          <Index each={menu()?.items}>
-            {(item, index) => {
-              const [anchor, setAnchor] = createSignal<HTMLElement | null>(
-                null,
-              );
+        <Index each={menu()?.items}>
+          {(item, index) => {
+            const [anchor, setAnchor] = createSignal<HTMLElement | null>(null);
 
-              const handleClick = () => {
-                if (openTarget() === anchor()) {
-                  setOpenTarget(null);
-                } else {
-                  setOpenTarget(anchor());
-                }
-              };
+            const handleClick = () => {
+              if (collapsed()) return;
+              if (openTarget() === anchor()) {
+                setOpenTarget(null);
+              } else {
+                setOpenTarget(anchor());
+              }
+            };
 
-              return (
-                <>
-                  <MenuButton
-                    data-index={index}
-                    data-length={data()?.items.length}
-                    onClick={handleClick}
-                    ref={setAnchor}
-                    selected={openTarget() === anchor()}
-                    text={item().label}
+            return (
+              <>
+                <MenuButton
+                  data-index={index}
+                  data-length={data()?.items.length}
+                  onClick={handleClick}
+                  ref={setAnchor}
+                  selected={openTarget() === anchor()}
+                  text={item().label}
+                />
+                <Panel
+                  anchor={anchor()}
+                  offset={{ mainAxis: 8 }}
+                  open={openTarget() === anchor()}
+                  placement={'bottom-start'}
+                >
+                  <PanelRenderer
+                    items={item().submenu?.items ?? []}
+                    onClick={handleItemClick}
                   />
-                  <Panel
-                    anchor={anchor()}
-                    offset={{ mainAxis: 8 }}
-                    open={openTarget() === anchor()}
-                    placement={'bottom-start'}
-                  >
-                    <PanelRenderer
-                      items={item().submenu?.items ?? []}
-                      onClick={handleItemClick}
-                    />
-                  </Panel>
-                </>
-              );
-            }}
-          </Index>
-        </Show>
+                </Panel>
+              </>
+            );
+          }}
+        </Index>
       </TransitionGroup>
+      <SettingsPanel
+        ipc={props.ipc}
+        onClose={() => setSettingsOpen(false)}
+        open={settingsOpen()}
+      />
       <Show when={props.enableController}>
         <div style={{ flex: 1 }} />
         <WindowController

@@ -95,3 +95,8 @@ ytmusic-browse-response .ytmusic-responsive-list-item-renderer {
 ytmusic-player[player-ui-state='FULLSCREEN'] {
   margin-top: 0 !important;
 }
+
+/* collapsed menu keeps the settings gear reachable; only the text menus hide */
+nav[data-ytmd-main-panel][data-collapsed='true'] > li {
+  display: none !important;
+}
