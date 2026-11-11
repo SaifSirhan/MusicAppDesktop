@@ -280,6 +280,9 @@ const migrations = {
 };
 
 export const store = new Store({
+  // ESM chunk imports evaluate before src/bootstrap.ts runs, so the override
+  // must also be honored here, where the store captures its directory.
+  cwd: process.env.MUSICAPP_USER_DATA,
   defaults: {
     ...defaults,
     // README: 'plugin' uses deepmerge to populate the default values, so it is not necessary to include it here
