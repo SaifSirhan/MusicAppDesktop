@@ -1,5 +1,7 @@
 appId: "com.sharl.musicapp.desktop"
 productName: "MusicApp"
+electronLanguages:
+  - en-US
 files:
   - '!*'
   - dist
@@ -34,6 +36,7 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  include: build/installer.nsh
   artifactName: "MusicApp-Desktop.${ext}"
 linux:
   icon: assets/generated/icons/png
