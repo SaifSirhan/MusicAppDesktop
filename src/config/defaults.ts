@@ -39,7 +39,10 @@ export interface DefaultConfig {
   };
   'plugins': Record<string, unknown>;
   'appearance': {
-    preset: 'default' | 'docker' | 'phosphor';
+    preset: 'default' | 'docker' | 'phosphor' | 'custom';
+    background: string;
+    accent: string;
+    accent2: string;
   };
 }
 
@@ -80,5 +83,8 @@ export const defaultConfig: DefaultConfig = {
   'plugins': {},
   'appearance': {
     preset: 'docker',
+    background: '#0f0f0f',
+    accent: '#1d63ed',
+    accent2: '#5b8bff',
   },
 };

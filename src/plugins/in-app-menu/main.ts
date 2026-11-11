@@ -9,6 +9,7 @@ import {
 import { languageResources } from 'virtual:i18n';
 
 import { applyAppearance } from '@/appearance';
+import { normalizeHex, SOLID_DEFAULTS } from '@/appearance/theme';
 import * as config from '@/config';
 import { setLanguage } from '@/i18n';
 
@@ -133,6 +134,18 @@ export const onMainLoad = ({
         'options.hideMenu': config.get('options.hideMenu'),
         'options.customWindowTitle': config.get('options.customWindowTitle'),
         'appearance.preset': config.get('appearance.preset'),
+        'appearance.background': normalizeHex(
+          config.get('appearance.background'),
+          SOLID_DEFAULTS.background,
+        ),
+        'appearance.accent': normalizeHex(
+          config.get('appearance.accent'),
+          SOLID_DEFAULTS.accent,
+        ),
+        'appearance.accent2': normalizeHex(
+          config.get('appearance.accent2'),
+          SOLID_DEFAULTS.accent2,
+        ),
         'options.removeUpgradeButton': config.get(
           'options.removeUpgradeButton',
         ),
@@ -166,6 +179,22 @@ export const onMainLoad = ({
       }
       case 'appearance.preset': {
         config.set('appearance.preset', value);
+        await applyAppearance(win);
+        return;
+      }
+      case 'appearance.background':
+      case 'appearance.accent':
+      case 'appearance.accent2': {
+        const fallback =
+          key === 'appearance.background'
+            ? SOLID_DEFAULTS.background
+            : key === 'appearance.accent'
+              ? SOLID_DEFAULTS.accent
+              : SOLID_DEFAULTS.accent2;
+        config.set(key, normalizeHex(value, fallback));
+        if (config.get('appearance.preset') !== 'custom') {
+          config.set('appearance.preset', 'custom');
+        }
         await applyAppearance(win);
         return;
       }

@@ -32,15 +32,15 @@ const itemStyle = cacheNoArgs(
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 10%, transparent);
     }
 
     &:active {
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
     }
 
     &[data-selected='true'] {
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
     }
 
     & * {
@@ -76,8 +76,8 @@ const itemChipStyle = cacheNoArgs(
     margin-left: 8px;
 
     border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #f1f1f1;
+    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
+    color: var(--ma-ink, #f1f1f1);
     font-size: 10px;
     font-weight: 500;
     line-height: 1;
@@ -97,7 +97,7 @@ const toolTipStyle = cacheNoArgs(
 
     border-radius: 4px;
     background-color: rgba(25, 25, 25, 0.8);
-    color: #f1f1f1;
+    color: var(--ma-ink, #f1f1f1);
     font-size: 10px;
   `,
 );

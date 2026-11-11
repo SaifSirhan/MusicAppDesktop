@@ -19,7 +19,7 @@ const iconButton = cacheNoArgs(
     justify-content: center;
     align-items: center;
 
-    color: white;
+    color: var(--ma-ink, #ffffff);
 
     outline: none;
     border: none;

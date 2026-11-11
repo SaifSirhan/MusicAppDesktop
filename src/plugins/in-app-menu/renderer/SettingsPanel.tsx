@@ -43,19 +43,19 @@ const panelStyle = cacheNoArgs(
     box-sizing: border-box;
     padding: 4px 0 8px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid color-mix(in srgb, var(--ma-ink, #ffffff) 12%, transparent);
 
     background-color: color-mix(
       in srgb,
-      var(--titlebar-background-color, #030303) 78%,
-      rgba(0, 0, 0, 0.6)
+      var(--ma-surface, var(--titlebar-background-color, #0a0a0a)) 93%,
+      transparent
     );
     backdrop-filter: blur(14px);
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.4),
       0 12px 40px rgba(0, 0, 0, 0.55);
 
-    color: #f1f1f1;
+    color: var(--ma-ink, #f1f1f1);
     font-family: Roboto, Arial, sans-serif;
     user-select: none;
     -webkit-app-region: none;
@@ -75,7 +75,7 @@ const headerStyle = cacheNoArgs(
     padding: 10px 14px 8px;
 
     background-color: inherit;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid color-mix(in srgb, var(--ma-ink, #ffffff) 10%, transparent);
 
     font-size: 13px;
     font-weight: 600;
@@ -92,7 +92,7 @@ const sectionTitleStyle = cacheNoArgs(
     letter-spacing: 0.08em;
     text-transform: uppercase;
 
-    color: rgba(255, 255, 255, 0.45);
+    color: color-mix(in srgb, var(--ma-ink, #ffffff) 48%, transparent);
   `,
 );
 
@@ -106,7 +106,7 @@ const rowStyle = cacheNoArgs(
     padding: 8px 14px;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.04);
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 5%, transparent);
     }
   `,
 );
@@ -115,7 +115,7 @@ const labelStyle = cacheNoArgs(
   () => css`
     font-size: 12.5px;
     font-weight: 500;
-    color: #f1f1f1;
+    color: var(--ma-ink, #f1f1f1);
   `,
 );
 
@@ -125,7 +125,7 @@ const descriptionStyle = cacheNoArgs(
 
     font-size: 11px;
     line-height: 1.35;
-    color: rgba(255, 255, 255, 0.52);
+    color: color-mix(in srgb, var(--ma-ink, #ffffff) 56%, transparent);
   `,
 );
 
@@ -136,13 +136,13 @@ const hintStyle = cacheNoArgs(
     padding: 1px 5px;
 
     border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 10%, transparent);
 
     font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.55);
+    color: color-mix(in srgb, var(--ma-ink, #ffffff) 58%, transparent);
     vertical-align: 1px;
   `,
 );
@@ -160,7 +160,7 @@ const switchStyle = cacheNoArgs(
     outline: none;
     cursor: pointer;
 
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
     transition: background-color 160ms ease;
 
     &::after {
@@ -193,24 +193,24 @@ const selectStyle = cacheNoArgs(
     max-width: 170px;
     padding: 4px 6px;
 
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid color-mix(in srgb, var(--ma-ink, #ffffff) 18%, transparent);
     border-radius: 6px;
     outline: none;
 
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #f1f1f1;
+    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 7%, transparent);
+    color: var(--ma-ink, #f1f1f1);
     font-family: inherit;
     font-size: 11.5px;
 
     cursor: pointer;
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.28);
+      border-color: color-mix(in srgb, var(--ma-ink, #ffffff) 30%, transparent);
     }
 
     option {
-      background-color: #202020;
-      color: #f1f1f1;
+      background-color: var(--ma-surface-2, #202020);
+      color: var(--ma-ink, #f1f1f1);
     }
   `,
 );
@@ -220,18 +220,80 @@ const inputStyle = cacheNoArgs(
     width: 150px;
     padding: 4px 6px;
 
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid color-mix(in srgb, var(--ma-ink, #ffffff) 18%, transparent);
     border-radius: 6px;
     outline: none;
 
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #f1f1f1;
+    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 7%, transparent);
+    color: var(--ma-ink, #f1f1f1);
     font-family: inherit;
     font-size: 11.5px;
 
     &:focus {
       border-color: var(--tm-accent, #1d63ed);
     }
+  `,
+);
+
+const colorWrapStyle = cacheNoArgs(
+  () => css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  `,
+);
+
+const colorInputStyle = cacheNoArgs(
+  () => css`
+    width: 34px;
+    height: 22px;
+    padding: 0;
+
+    border: 1px solid color-mix(in srgb, var(--ma-ink, #ffffff) 18%, transparent);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-color-swatch-wrapper {
+      padding: 2px;
+    }
+    &::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+  `,
+);
+
+const colorValueStyle = cacheNoArgs(
+  () => css`
+    min-width: 62px;
+
+    font-family: Consolas, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    color: color-mix(in srgb, var(--ma-ink, #ffffff) 64%, transparent);
+
+    cursor: default;
+    user-select: text;
+  `,
+);
+
+const swatchStripStyle = cacheNoArgs(
+  () => css`
+    display: flex;
+    height: 34px;
+    margin: 4px 14px 8px;
+    overflow: hidden;
+
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--ma-ink, #ffffff) 16%, transparent);
+  `,
+);
+
+const swatchCellStyle = cacheNoArgs(
+  () => css`
+    flex: 1;
+    transition: background-color 160ms ease;
   `,
 );
 
@@ -244,15 +306,15 @@ const closeStyle = cacheNoArgs(
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: color-mix(in srgb, var(--ma-ink, #ffffff) 62%, transparent);
 
     cursor: pointer;
     font-size: 15px;
     line-height: 1;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 10%, transparent);
+      color: var(--ma-ink, #ffffff);
     }
   `,
 );
@@ -278,7 +340,7 @@ export type SettingsPanelProps = {
 };
 
 export const SettingsPanel = (props: SettingsPanelProps) => {
-  const [snapshot] = createResource(async () =>
+  const [snapshot, { refetch }] = createResource(async () =>
     (await props.ipc.invoke('settings:get')) as SettingsSnapshot,
   );
   const [values, setValues] = createSignal<Record<string, unknown>>({});
@@ -286,6 +348,12 @@ export const SettingsPanel = (props: SettingsPanelProps) => {
   createEffect(() => {
     const data = snapshot();
     if (data) setValues(data.values);
+  });
+
+  // Config can change outside the panel (menus, plugins); refresh on open.
+  createEffect(() => {
+    if (!props.open) return;
+    Promise.resolve(refetch()).catch(() => undefined);
   });
 
   const langOptions = (): SettingOption[] =>
@@ -323,6 +391,22 @@ export const SettingsPanel = (props: SettingsPanelProps) => {
           role="switch"
           type="button"
         />
+      );
+    }
+
+    if (row.kind === 'color') {
+      const color = textValue(value()) || row.fallback;
+      return (
+        <div class={colorWrapStyle()}>
+          <input
+            aria-label={row.label}
+            class={colorInputStyle()}
+            onChange={(event) => update(row.key, event.currentTarget.value)}
+            type="color"
+            value={color}
+          />
+          <span class={colorValueStyle()}>{color.toUpperCase()}</span>
+        </div>
       );
     }
 
@@ -381,6 +465,31 @@ export const SettingsPanel = (props: SettingsPanelProps) => {
           {(section) => (
             <>
               <div class={sectionTitleStyle()}>{section.title}</div>
+              <Show when={section.id === 'appearance'}>
+                <div class={swatchStripStyle()}>
+                  <For
+                    each={[
+                      'appearance.background',
+                      'appearance.accent',
+                      'appearance.accent2',
+                    ]}
+                  >
+                    {(key) => {
+                      const row = section.rows.find((item) => item.key === key);
+                      const fallback =
+                        row?.kind === 'color' ? row.fallback : '#000000';
+                      const color = textValue(values()[key]) || fallback;
+                      return (
+                        <div
+                          class={swatchCellStyle()}
+                          style={{ 'background-color': color }}
+                          title={color.toUpperCase()}
+                        />
+                      );
+                    }}
+                  </For>
+                </div>
+              </Show>
               <For each={section.rows}>
                 {(row) => (
                   <div class={rowStyle()}>

@@ -19,14 +19,14 @@ const menuStyle = cacheNoArgs(
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 10%, transparent);
     }
     &:active {
       scale: 0.9;
     }
 
     &[data-selected='true'] {
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
     }
   `,
 );

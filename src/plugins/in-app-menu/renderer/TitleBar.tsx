@@ -43,7 +43,7 @@ const titleStyle = cacheNoArgs(
     align-items: center;
     gap: 4px;
 
-    color: #f1f1f1;
+    color: var(--ma-ink, #f1f1f1);
     font-size: 12px;
     padding: 4px 4px 4px var(--offset-left, 4px);
     background-color: var(--titlebar-background-color, #030303);
@@ -66,7 +66,7 @@ const separatorStyle = cacheNoArgs(
     height: 1px;
     margin: 4px 0;
 
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 22%, transparent);
   `,
 );
 

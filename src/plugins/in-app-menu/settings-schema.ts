@@ -31,7 +31,13 @@ export interface TextRow extends SettingRowBase {
   placeholder?: string;
 }
 
-export type SettingRow = SwitchRow | SelectRow | TextRow;
+export interface ColorRow extends SettingRowBase {
+  kind: 'color';
+  apply: SettingApply;
+  fallback: string;
+}
+
+export type SettingRow = SwitchRow | SelectRow | TextRow | ColorRow;
 
 export interface SettingSection {
   id: string;
@@ -110,6 +116,49 @@ export const settingsSections: SettingSection[] = [
     ],
   },
   {
+    id: 'appearance',
+    title: 'Appearance',
+    rows: [
+      {
+        kind: 'select',
+        key: 'appearance.preset',
+        label: 'Theme',
+        description: 'Preset look, or Custom solid to use the colours below.',
+        apply: 'live',
+        options: [
+          { value: 'docker', label: 'Docker Blue' },
+          { value: 'default', label: 'Default (native)' },
+          { value: 'phosphor', label: 'Phosphor' },
+          { value: 'custom', label: 'Custom solid' },
+        ],
+      },
+      {
+        kind: 'color',
+        key: 'appearance.background',
+        label: 'Background',
+        description: 'Base canvas colour. Edits switch the theme to Custom solid.',
+        apply: 'live',
+        fallback: '#0f0f0f',
+      },
+      {
+        kind: 'color',
+        key: 'appearance.accent',
+        label: 'Accent',
+        description: 'Play button, links, seek bar and active icons.',
+        apply: 'live',
+        fallback: '#1d63ed',
+      },
+      {
+        kind: 'color',
+        key: 'appearance.accent2',
+        label: 'Secondary accent',
+        description: 'Highlights, badges and secondary controls.',
+        apply: 'live',
+        fallback: '#5b8bff',
+      },
+    ],
+  },
+  {
     id: 'window',
     title: 'Window',
     rows: [
@@ -135,18 +184,6 @@ export const settingsSections: SettingSection[] = [
         description: 'Title shown in the window frame. Empty = MusicApp.',
         apply: 'restart',
         placeholder: 'MusicApp',
-      },
-      {
-        kind: 'select',
-        key: 'appearance.preset',
-        label: 'Appearance',
-        description: 'Accent colours over the native YouTube Music layout.',
-        apply: 'live',
-        options: [
-          { value: 'docker', label: 'Docker Blue' },
-          { value: 'default', label: 'Default (native)' },
-          { value: 'phosphor', label: 'Phosphor' },
-        ],
       },
     ],
   },
