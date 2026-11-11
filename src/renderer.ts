@@ -191,12 +191,16 @@ async function onApiLoaded() {
   window.ipcRenderer.on(
     'peard:add-to-queue',
     (_, videoId: string, queueInsertPosition: string) => {
+      const report = (inserted: boolean) =>
+        window.ipcRenderer.send('peard:add-to-queue-result', videoId, inserted);
+
       const queue = document.querySelector<QueueElement>('#queue');
       const app = document.querySelector<MusicPlayerAppElement>('ytmusic-app');
-      if (!app) return;
-
       const store = queue?.queue.store.store;
-      if (!store) return;
+      if (!app || !store) {
+        report(false);
+        return;
+      }
 
       app.networkManager
         .fetch('/music/get_queue', {
@@ -209,7 +213,8 @@ async function onApiLoaded() {
             result &&
             typeof result === 'object' &&
             'queueDatas' in result &&
-            Array.isArray(result.queueDatas)
+            Array.isArray(result.queueDatas) &&
+            result.queueDatas.length > 0
           ) {
             const queueItems = store.getState().queue.items;
             const queueItemsLength = queueItems.length ?? 0;
@@ -239,8 +244,12 @@ async function onApiLoaded() {
                 shouldAssignIds: true,
               },
             });
+            report(true);
+          } else {
+            report(false);
           }
-        });
+        })
+        .catch(() => report(false));
     },
   );
   window.ipcRenderer.on(

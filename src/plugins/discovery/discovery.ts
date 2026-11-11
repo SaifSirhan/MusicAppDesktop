@@ -16,8 +16,13 @@ export const DISCOVERY_GENRES = [
   'Folk',
   'Soul',
   'Funk',
-  'Soundtrack',
 ] as const;
+
+const NON_MUSIC_TITLE =
+  /(original motion picture|soundtrack|\bscore\b|karaoke|tribute|in the style of|made famous|cover version|lullab(?:y|ies)|white noise|rain sounds|sleep sounds|meditation|podcast|audiobook|binaural|asmr)/i;
+
+export const isLikelyMusicAlbum = (title: string): boolean =>
+  title.trim().length > 0 && !NON_MUSIC_TITLE.test(title);
 
 export const UNDERGROUND_LISTENER_LIMIT = 100_000;
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isLikelyMusicAlbum,
   normalizeArtist,
   parseLastfmListeners,
   pickRandom,
@@ -9,6 +10,23 @@ import {
   uniqueArtists,
   type TrackRef,
 } from '../../src/plugins/discovery/discovery';
+
+describe('isLikelyMusicAlbum', () => {
+  it('accepts normal album titles', () => {
+    expect(isLikelyMusicAlbum('Random Access Memories')).toBe(true);
+    expect(isLikelyMusicAlbum('Grace')).toBe(true);
+  });
+
+  it('rejects soundtracks, karaoke, covers and other non-albums', () => {
+    expect(
+      isLikelyMusicAlbum('Scene (Original Motion Picture Soundtrack)'),
+    ).toBe(false);
+    expect(isLikelyMusicAlbum('Karaoke Hits Vol. 3')).toBe(false);
+    expect(isLikelyMusicAlbum('A Tribute to Queen')).toBe(false);
+    expect(isLikelyMusicAlbum('Rain Sounds for Sleep')).toBe(false);
+    expect(isLikelyMusicAlbum('  ')).toBe(false);
+  });
+});
 
 describe('pickRandom', () => {
   it('returns undefined for an empty list', () => {

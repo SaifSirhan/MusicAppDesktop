@@ -4,6 +4,7 @@ import { createPlugin } from '@/utils';
 
 import {
   DISCOVERY_GENRES,
+  isLikelyMusicAlbum,
   normalizeArtist,
   parseLastfmListeners,
   pickRandom,
@@ -40,9 +41,20 @@ const getInnertube = (): Promise<Innertube> => {
 type ShelfItem = {
   id?: string;
   item_type?: string;
-  title?: string;
+  title?: string | { toString(): string };
+  artists?: { name: string }[];
+  author?: { name: string };
   endpoint?: { payload?: { browseId?: string } };
 };
+
+const titleText = (item: ShelfItem | undefined): string => {
+  const title = item?.title;
+  if (typeof title === 'string') return title;
+  return title?.toString?.() ?? '';
+};
+
+const browseId = (item: ShelfItem | undefined): string | undefined =>
+  item?.id ?? item?.endpoint?.payload?.browseId;
 
 const shelfItems = (contents: unknown): ShelfItem[] => {
   if (!Array.isArray(contents)) return [];
@@ -51,9 +63,6 @@ const shelfItems = (contents: unknown): ShelfItem[] => {
   ) as { contents?: unknown } | undefined;
   return Array.isArray(shelf?.contents) ? (shelf.contents as ShelfItem[]) : [];
 };
-
-const browseId = (item: ShelfItem | undefined): string | undefined =>
-  item?.id ?? item?.endpoint?.payload?.browseId;
 
 type ResolvedItem = {
   item_type?: string;
@@ -107,17 +116,43 @@ const lookupListeners = async (
   }
 };
 
+const pendingAcks = new Map<string, (inserted: boolean) => void>();
+
+const waitForAck = (videoId: string, timeoutMs = 6000): Promise<boolean> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      pendingAcks.delete(videoId);
+      resolve(false);
+    }, timeoutMs);
+    pendingAcks.set(videoId, (inserted) => {
+      clearTimeout(timer);
+      pendingAcks.delete(videoId);
+      resolve(inserted);
+    });
+  });
+
 const queueTracks = async (
   window: BrowserWindow,
   tracks: TrackRef[],
 ): Promise<number> => {
-  let queued = 0;
-  for (const track of tracks) {
-    window.webContents.send('peard:add-to-queue', track.videoId, 'INSERT_AT_END');
-    queued += 1;
-    await delay(200);
+  // Inserting after the current song keeps the selection visible and next in
+  // line instead of buried at the end of a long radio queue. Sending in
+  // reverse makes the final queue order match the album/playlist order.
+  const ordered = [...tracks].reverse();
+  let inserted = 0;
+
+  for (const track of ordered) {
+    const ack = waitForAck(track.videoId);
+    window.webContents.send(
+      'peard:add-to-queue',
+      track.videoId,
+      'INSERT_AFTER_CURRENT_VIDEO',
+    );
+    if (await ack) inserted += 1;
+    await delay(120);
   }
-  return queued;
+
+  return inserted;
 };
 
 const filterUnderground = async (
@@ -206,58 +241,148 @@ const playRandomGenre = async (
   if (tracks.length === 0) throw new Error('That playlist has no tracks.');
 
   const finalTracks = await prepareTracks(window, tracks, config);
-  const queued = await queueTracks(window, finalTracks);
+  const inserted = await queueTracks(window, finalTracks);
 
   await dialog.showMessageBox(window, {
     type: 'info',
-    message: `Queued ${queued} tracks from ${genre}.`,
-    detail: `Playlist: ${chosen.title ?? 'unknown'}`,
+    message: `Inserted ${inserted} of ${finalTracks.length} ${genre} tracks after the current song.`,
+    detail: `Playlist: ${titleText(chosen) || 'unknown'}`,
   });
+};
+
+type AlbumDetail = {
+  header?: {
+    author?: { name?: string };
+    strapline_text_one?: { toString(): string };
+    subtitle?: { toString(): string };
+  };
+  contents?: unknown;
+};
+
+const albumArtistNames = (album: AlbumDetail): string[] => {
+  // Album pages expose the artist as the strapline, not the subtitle
+  // ("Album • 2026"). Fall back to the header author, then track artists.
+  const strapline = album.header?.strapline_text_one?.toString?.()?.trim();
+  if (strapline) return [strapline];
+
+  const author = album.header?.author?.name;
+  if (author) return [author];
+
+  const fromTracks = playlistTracks(album.contents)
+    .flatMap((track) => track.artists ?? [])
+    .filter((name) => !!name);
+  return fromTracks.length > 0 ? [...new Set(fromTracks)] : [];
+};
+
+const collectAlbums = async (yt: Innertube): Promise<ShelfItem[]> => {
+  const feeds = await Promise.all([
+    yt.music.getExplore(),
+    yt.music.getHomeFeed(),
+  ]);
+  const seen = new Set<string>();
+  const albums: ShelfItem[] = [];
+
+  for (const feed of feeds) {
+    const sections = (feed as { sections?: unknown }).sections;
+    if (!Array.isArray(sections)) continue;
+    for (const section of sections) {
+      const contents = (section as { contents?: unknown }).contents;
+      if (!Array.isArray(contents)) continue;
+      for (const item of contents as ShelfItem[]) {
+        if (item?.item_type !== 'album') continue;
+        const id = browseId(item);
+        if (!id || seen.has(id)) continue;
+        if (!isLikelyMusicAlbum(titleText(item))) continue;
+        seen.add(id);
+        albums.push(item);
+      }
+    }
+  }
+
+  return albums;
 };
 
 const playRandomAlbum = async (
   window: BrowserWindow,
-  _config: DiscoveryConfig,
+  config: DiscoveryConfig,
 ): Promise<void> => {
-  const genre = pickRandom(DISCOVERY_GENRES);
-  if (!genre) return;
-
   const yt = await getInnertube();
-  const search = await yt.music.search(genre);
-  const filtered = await search.applyFilter('Albums');
-  const albums = shelfItems(filtered.contents).filter(
-    (item) => item.item_type === 'album' && browseId(item),
-  );
-  if (albums.length === 0) throw new Error(`No albums found for ${genre}.`);
+  const albums = await collectAlbums(yt);
+  if (albums.length === 0) throw new Error('No albums found.');
 
-  let chosen = pickRandom(albums);
+  const apiKey = config.lastfmApiKey.trim();
+  const underground = config.undergroundOnly;
+  let filterActive = underground;
+
+  if (underground && !apiKey) {
+    filterActive = false;
+    await dialog.showMessageBox(window, {
+      type: 'info',
+      message: 'Underground filter is on but no Last.fm API key is set.',
+      detail:
+        'Add a free key from last.fm/api/account/create in Settings → Advanced. Picking an album without the filter.',
+    });
+  }
+
+  let chosen: ShelfItem | undefined;
   let tracks: TrackRef[] = [];
 
-  // Singles and one-track EPs show up in album search; retry until a real
-  // multi-track release is found, then accept whatever is left.
-  for (const candidate of shuffle([...albums]).slice(0, 4)) {
+  for (const candidate of shuffle([...albums]).slice(0, 10)) {
     const id = browseId(candidate);
     if (!id) continue;
-    const album = await yt.music.getAlbum(id);
+
+    const album = (await yt.music.getAlbum(id)) as AlbumDetail;
     const candidateTracks = playlistTracks(album.contents);
-    if (candidateTracks.length > tracks.length) {
-      chosen = candidate;
-      tracks = candidateTracks;
+    // Whole releases only: skip singles and one-track EPs.
+    if (candidateTracks.length < 4) {
+      await delay(150);
+      continue;
     }
-    if (tracks.length >= 4) break;
-    await delay(150);
+
+    if (filterActive) {
+      const artists = albumArtistNames(album);
+      if (artists.length === 0) {
+        await delay(150);
+        continue;
+      }
+      const listeners = await lookupListeners(artists[0], apiKey);
+      await delay(220);
+      if (listeners === 'invalid') {
+        filterActive = false;
+        await dialog.showMessageBox(window, {
+          type: 'warning',
+          message: 'Last.fm rejected the API key.',
+          detail:
+            'Check the key in Settings → Advanced. Picking an album without the underground filter.',
+        });
+      } else if (
+        typeof listeners !== 'number' ||
+        listeners >= UNDERGROUND_LISTENER_LIMIT
+      ) {
+        continue;
+      }
+    }
+
+    chosen = candidate;
+    tracks = candidateTracks;
+    break;
   }
 
-  if (!chosen || tracks.length === 0) {
-    throw new Error('That album has no tracks.');
+  if (!chosen) {
+    throw new Error(
+      filterActive
+        ? 'No underground album with enough tracks was found. Try again.'
+        : 'No suitable album found. Try again.',
+    );
   }
 
-  const queued = await queueTracks(window, tracks.slice(0, 40));
+  const selection = tracks.slice(0, 40);
+  const inserted = await queueTracks(window, selection);
 
   await dialog.showMessageBox(window, {
     type: 'info',
-    message: `Queued the album ${chosen.title ?? ''}`.trim() + '.',
-    detail: `${queued} tracks, ${genre}.`,
+    message: `Inserted ${inserted} of ${selection.length} album tracks after the current song.`,
+    detail: titleText(chosen),
   });
 };
 
@@ -287,6 +412,14 @@ export default createPlugin({
     undergroundOnly: false,
     lastfmApiKey: '',
   } as DiscoveryConfig,
+  backend: {
+    start({ ipc }) {
+      ipc.on('peard:add-to-queue-result', (videoId: unknown, inserted: unknown) => {
+        const ack = pendingAcks.get(String(videoId));
+        if (ack) ack(Boolean(inserted));
+      });
+    },
+  },
   menu({ window, getConfig }) {
     return [
       {
