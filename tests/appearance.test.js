@@ -28,14 +28,33 @@ const accent = (window) =>
       .trim(),
   );
 
+const seed = async (prefix, config) => {
+  const userData = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+  if (config) {
+    await fs.writeFile(
+      path.join(userData, 'config.json'),
+      JSON.stringify(config),
+    );
+  }
+  return userData;
+};
+
+test('Docker preset is the default and injects the blue accent', async () => {
+  const userData = await seed('musicapp-docker-');
+
+  const app = await launch(userData);
+  const window = await app.firstWindow();
+  await window.waitForLoadState('domcontentloaded');
+
+  await expect.poll(() => accent(window), { timeout: 20_000 }).toBe('#1d63ed');
+
+  await app.close();
+});
+
 test('Phosphor preset injects the green accent', async () => {
-  const userData = await fs.mkdtemp(
-    path.join(os.tmpdir(), 'musicapp-phosphor-'),
-  );
-  await fs.writeFile(
-    path.join(userData, 'config.json'),
-    JSON.stringify({ appearance: { preset: 'phosphor' } }),
-  );
+  const userData = await seed('musicapp-phosphor-', {
+    appearance: { preset: 'phosphor' },
+  });
 
   const app = await launch(userData);
   const window = await app.firstWindow();
@@ -47,10 +66,10 @@ test('Phosphor preset injects the green accent', async () => {
   await app.close();
 });
 
-test('Default preset injects no Phosphor variables', async () => {
-  const userData = await fs.mkdtemp(
-    path.join(os.tmpdir(), 'musicapp-default-'),
-  );
+test('Explicit default preset injects no accent variables', async () => {
+  const userData = await seed('musicapp-default-', {
+    appearance: { preset: 'default' },
+  });
 
   const app = await launch(userData);
   const window = await app.firstWindow();

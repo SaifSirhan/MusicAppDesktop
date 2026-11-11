@@ -1,0 +1,25 @@
+/* Docker Blue — clean accent over the native YouTube Music layout.
+   Only accent/brand tokens are recoloured; backgrounds, text and layout stay
+   native. Tokens mirror the mappings the Phosphor theme is known to drive. */
+:root,
+body,
+ytmusic-app {
+  --tm-accent: #1d63ed !important;
+  --tm-accent-hot: #5b8bff !important;
+  --tm-accent-dim: #0b2e6b !important;
+
+  /* YouTube Music accent / brand tokens */
+  --yt-spec-call-to-action: #1d63ed !important;
+  --yt-spec-call-to-action-hover: #5b8bff !important;
+  --yt-spec-brand-link-text: #5b8bff !important;
+  --yt-spec-static-brand-red: #1d63ed !important;
+  --yt-spec-icon-active-other: #1d63ed !important;
+  --yt-spec-themed-blue: #1d63ed !important;
+  --ytmusic-static-brand-red: #1d63ed !important;
+
+  /* seek/progress slider accent */
+  --paper-slider-active-color: #1d63ed !important;
+  --paper-slider-knob-color: #1d63ed !important;
+  --paper-slider-knob-start-color: #1d63ed !important;
+  --paper-slider-pin-color: #1d63ed !important;
+}

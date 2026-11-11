@@ -2,6 +2,7 @@ import * as config from '@/config';
 import { LoggerPrefix } from '@/utils';
 
 import { buildAppearanceCss, parseAppearancePreset } from './buildCss';
+import dockerCss from './docker.css?inline';
 import phosphorCss from './phosphor.css?inline';
 
 import type { BrowserWindow, WebContents } from 'electron';
@@ -25,7 +26,7 @@ export async function applyAppearance(win: BrowserWindow): Promise<void> {
   }
 
   const preset = parseAppearancePreset(config.get('appearance.preset'));
-  const css = buildAppearanceCss(preset, phosphorCss);
+  const css = buildAppearanceCss(preset, phosphorCss, dockerCss);
   if (!css) return;
 
   const key = await webContents.insertCSS(css);

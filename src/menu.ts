@@ -303,9 +303,25 @@ export const mainMenuTemplate = async (
               label: 'Appearance',
               submenu: [
                 {
+                  label: 'Docker Blue',
+                  type: 'radio',
+                  checked: config.get('appearance.preset') === 'docker',
+                  click() {
+                    config.set('appearance.preset', 'docker');
+                    applyAppearance(win).catch((error) => {
+                      console.warn(
+                        LoggerPrefix,
+                        'Failed to apply appearance CSS',
+                        error,
+                      );
+                    });
+                    innerRefreshMenu();
+                  },
+                },
+                {
                   label: 'Default (YouTube Music)',
                   type: 'radio',
-                  checked: config.get('appearance.preset') !== 'phosphor',
+                  checked: config.get('appearance.preset') === 'default',
                   click() {
                     config.set('appearance.preset', 'default');
                     applyAppearance(win).catch((error) => {

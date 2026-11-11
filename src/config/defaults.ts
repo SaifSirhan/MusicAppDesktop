@@ -39,7 +39,7 @@ export interface DefaultConfig {
   };
   'plugins': Record<string, unknown>;
   appearance: {
-    preset: 'default' | 'phosphor';
+    preset: 'default' | 'docker' | 'phosphor';
   };
 }
 
@@ -79,6 +79,6 @@ export const defaultConfig: DefaultConfig = {
   },
   'plugins': {},
   appearance: {
-    preset: 'default',
+    preset: 'docker',
   },
 };
