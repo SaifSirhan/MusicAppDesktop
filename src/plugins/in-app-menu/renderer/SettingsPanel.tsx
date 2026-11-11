@@ -12,6 +12,7 @@ import { css } from 'solid-styled-components';
 import { cacheNoArgs } from '@/providers/decorators';
 
 import {
+  nearestStop,
   settingsSections,
   type SettingOption,
   type SettingRow,
@@ -278,6 +279,37 @@ const colorValueStyle = cacheNoArgs(
   `,
 );
 
+const rangeWrapStyle = cacheNoArgs(
+  () => css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 176px;
+  `,
+);
+
+const rangeStyle = cacheNoArgs(
+  () => css`
+    flex: 1;
+    height: 4px;
+    margin: 0;
+
+    accent-color: var(--tm-accent, #1d63ed);
+    cursor: pointer;
+  `,
+);
+
+const rangeValueStyle = cacheNoArgs(
+  () => css`
+    min-width: 34px;
+
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    text-align: right;
+    color: var(--ma-ink, #f1f1f1);
+  `,
+);
+
 const swatchStripStyle = cacheNoArgs(
   () => css`
     display: flex;
@@ -406,6 +438,32 @@ export const SettingsPanel = (props: SettingsPanelProps) => {
             value={color}
           />
           <span class={colorValueStyle()}>{color.toUpperCase()}</span>
+        </div>
+      );
+    }
+
+    if (row.kind === 'range') {
+      const stops = row.stops;
+      const current = () => nearestStop(stops, Number(value()) || 0);
+      const index = () => Math.max(0, stops.indexOf(current()));
+
+      return (
+        <div class={rangeWrapStyle()}>
+          <input
+            aria-label={row.label}
+            class={rangeStyle()}
+            max={stops.length - 1}
+            min={0}
+            onInput={(event) =>
+              update(row.key, stops[Number(event.currentTarget.value)])
+            }
+            step={1}
+            type="range"
+            value={index()}
+          />
+          <span class={rangeValueStyle()}>
+            {current() === 0 ? 'Off' : `${current()} s`}
+          </span>
         </div>
       );
     }

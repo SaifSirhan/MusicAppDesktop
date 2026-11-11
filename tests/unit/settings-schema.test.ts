@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  nearestStop,
   settingsSections,
   trayFlagsFromMode,
   trayModeFromFlags,
@@ -27,6 +28,25 @@ describe('settings schema', () => {
       if (row.dynamicOptions === 'languages') continue;
       expect(row.options?.length ?? 0).toBeGreaterThan(0);
     }
+  });
+
+  it('gives every range row ascending stops starting at 0', () => {
+    for (const row of rows) {
+      if (row.kind !== 'range') continue;
+      expect(row.stops.length).toBeGreaterThan(1);
+      expect(row.stops[0]).toBe(0);
+      const sorted = [...row.stops].sort((a, b) => a - b);
+      expect(row.stops).toEqual(sorted);
+    }
+  });
+
+  it('snaps a stored crossfade value to the closest stop', () => {
+    const stops = [0, 5, 10, 20, 30, 50];
+    expect(nearestStop(stops, 0)).toBe(0);
+    expect(nearestStop(stops, 7)).toBe(5);
+    expect(nearestStop(stops, 20)).toBe(20);
+    expect(nearestStop(stops, 34)).toBe(30);
+    expect(nearestStop(stops, 80)).toBe(50);
   });
 
   it('maps tray flags to a mode and back', () => {

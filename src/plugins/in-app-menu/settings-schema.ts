@@ -37,7 +37,20 @@ export interface ColorRow extends SettingRowBase {
   fallback: string;
 }
 
-export type SettingRow = SwitchRow | SelectRow | TextRow | ColorRow;
+export interface RangeRow extends SettingRowBase {
+  kind: 'range';
+  apply: SettingApply;
+  stops: number[];
+}
+
+export type SettingRow = SwitchRow | SelectRow | TextRow | ColorRow | RangeRow;
+
+export const nearestStop = (stops: number[], value: number): number =>
+  stops.reduce(
+    (closest, stop) =>
+      Math.abs(stop - value) < Math.abs(closest - value) ? stop : closest,
+    stops[0],
+  );
 
 export interface SettingSection {
   id: string;
@@ -155,6 +168,21 @@ export const settingsSections: SettingSection[] = [
         description: 'Highlights, badges and secondary controls.',
         apply: 'live',
         fallback: '#5b8bff',
+      },
+    ],
+  },
+  {
+    id: 'crossfade',
+    title: 'Crossfade',
+    rows: [
+      {
+        kind: 'range',
+        key: 'plugins.crossfade.transitionSeconds',
+        label: 'Transition length',
+        description:
+          'Fade the current song out and the next one in. Slide to Off to skip transitions.',
+        apply: 'live',
+        stops: [0, 5, 10, 20, 30, 50],
       },
     ],
   },

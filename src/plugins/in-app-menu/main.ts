@@ -107,6 +107,17 @@ export const onMainLoad = ({
   const discoveryConfig = (): DiscoverySettings =>
     (config.get('plugins.discovery') ?? {}) as DiscoverySettings;
 
+  const crossfadeDefaults = {
+    enabled: false,
+    secondsBeforeEnd: 10,
+    fadeInDuration: 1500,
+    fadeOutDuration: 5000,
+    fadeScaling: 'linear',
+  };
+  type CrossfadeSettings = { secondsBeforeEnd?: number };
+  const crossfadeConfig = (): CrossfadeSettings =>
+    (config.get('plugins.crossfade') ?? {}) as CrossfadeSettings;
+
   handle('settings:get', async (): Promise<SettingsSnapshot> => {
     const langResources = await languageResources();
     const languages = Object.keys(langResources)
@@ -164,6 +175,8 @@ export const onMainLoad = ({
         'plugins.discovery.undergroundOnly':
           discoveryConfig().undergroundOnly ?? false,
         'plugins.discovery.lastfmApiKey': discoveryConfig().lastfmApiKey ?? '',
+        'plugins.crossfade.transitionSeconds':
+          crossfadeConfig().secondsBeforeEnd ?? 10,
       },
       languages,
     };
@@ -213,6 +226,19 @@ export const onMainLoad = ({
       case 'options.hideMenu': {
         config.setMenuOption('options.hideMenu', value);
         send('set-in-app-menu-collapsed', Boolean(value));
+        return;
+      }
+      case 'plugins.crossfade.transitionSeconds': {
+        const seconds = Math.max(0, Math.min(600, Number(value) || 0));
+        config.setPartial(
+          'plugins.crossfade',
+          {
+            secondsBeforeEnd: seconds,
+            fadeInDuration: seconds * 1000,
+            fadeOutDuration: seconds * 1000,
+          },
+          crossfadeDefaults,
+        );
         return;
       }
       case 'plugins.discovery.undergroundOnly': {
