@@ -32,15 +32,27 @@ const itemStyle = cacheNoArgs(
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
-      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 10%, transparent);
+      background-color: color-mix(
+        in srgb,
+        var(--ma-ink, #ffffff) 10%,
+        transparent
+      );
     }
 
     &:active {
-      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
+      background-color: color-mix(
+        in srgb,
+        var(--ma-ink, #ffffff) 20%,
+        transparent
+      );
     }
 
     &[data-selected='true'] {
-      background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
+      background-color: color-mix(
+        in srgb,
+        var(--ma-ink, #ffffff) 20%,
+        transparent
+      );
     }
 
     & * {
@@ -76,7 +88,11 @@ const itemChipStyle = cacheNoArgs(
     margin-left: 8px;
 
     border-radius: 4px;
-    background-color: color-mix(in srgb, var(--ma-ink, #ffffff) 20%, transparent);
+    background-color: color-mix(
+      in srgb,
+      var(--ma-ink, #ffffff) 20%,
+      transparent
+    );
     color: var(--ma-ink, #f1f1f1);
     font-size: 10px;
     font-weight: 500;
@@ -278,6 +294,13 @@ export const PanelItem = (props: PanelItemProps) => {
   };
 
   const handleClick = async () => {
+    if (props.type === 'submenu') {
+      // Submenus have no command in the Electron menu; clicking should open
+      // the nested panel (touch/trackpad users never trigger the hover timer).
+      setOpen(true);
+      return;
+    }
+
     await window.ipcRenderer.invoke('peard:menu-event', props.commandId);
     if (props.type === 'radio') {
       props.onChange?.(!props.checked);
