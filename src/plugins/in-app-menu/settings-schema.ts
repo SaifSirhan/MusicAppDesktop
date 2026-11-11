@@ -1,3 +1,4 @@
+import { THEME_PALETTES } from '../../appearance/palettes';
 import { startingPages } from '../../providers/extracted-data';
 
 export type SettingApply = 'live' | 'reload' | 'restart';
@@ -136,12 +137,17 @@ export const settingsSections: SettingSection[] = [
         kind: 'select',
         key: 'appearance.preset',
         label: 'Theme',
-        description: 'Preset look, or Custom solid to use the colours below.',
+        description:
+          'Premade palette, a bundled theme, or Custom solid to use the colours below.',
         apply: 'live',
         options: [
           { value: 'docker', label: 'Docker Blue' },
           { value: 'default', label: 'Default (native)' },
           { value: 'phosphor', label: 'Phosphor' },
+          ...THEME_PALETTES.map((palette) => ({
+            value: `palette:${palette.id}`,
+            label: palette.name,
+          })),
           { value: 'custom', label: 'Custom solid' },
         ],
       },

@@ -68,6 +68,22 @@ describe('buildSolidThemeCss', () => {
     expect(css).toContain('--ma-ink: #141414');
   });
 
+  it('only adds the light text overrides for light palettes', () => {
+    const light = buildSolidThemeCss({
+      background: '#faf8f4',
+      accent: '#c2410c',
+      accent2: '#f59e0b',
+    });
+    const dark = buildSolidThemeCss({
+      background: '#05070f',
+      accent: '#4f7cff',
+      accent2: '#9d7bff',
+    });
+    expect(light).toContain('.subtitle.ytmusic-guide-entry-renderer');
+    expect(light).toContain('ytmusic-chip-cloud-chip-renderer');
+    expect(dark).not.toContain('.subtitle.ytmusic-guide-entry-renderer');
+  });
+
   it('sanitises invalid colours instead of emitting them', () => {
     const css = buildSolidThemeCss({
       background: 'javascript:alert(1)',

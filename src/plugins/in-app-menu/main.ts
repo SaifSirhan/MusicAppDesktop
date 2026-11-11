@@ -9,6 +9,7 @@ import {
 import { languageResources } from 'virtual:i18n';
 
 import { applyAppearance } from '@/appearance';
+import { paletteById, paletteSelectValue } from '@/appearance/palettes';
 import { normalizeHex, SOLID_DEFAULTS } from '@/appearance/theme';
 import * as config from '@/config';
 import { setLanguage } from '@/i18n';
@@ -118,6 +119,39 @@ export const onMainLoad = ({
   const crossfadeConfig = (): CrossfadeSettings =>
     (config.get('plugins.crossfade') ?? {}) as CrossfadeSettings;
 
+  const appearancePresetValue = (): string => {
+    const preset = config.get('appearance.preset');
+    const palette = config.get('appearance.palette');
+    return preset === 'custom' && typeof palette === 'string' && palette
+      ? paletteSelectValue(palette)
+      : String(preset ?? 'default');
+  };
+
+  const applyPalette = async (value: string): Promise<boolean> => {
+    const palette = paletteById(value.replace(/^palette:/, ''));
+    if (!palette) return false;
+
+    config.setPartial(
+      'appearance',
+      {
+        preset: 'custom',
+        background: palette.background,
+        accent: palette.accent,
+        accent2: palette.accent2,
+        palette: palette.id,
+      },
+      {
+        preset: 'custom',
+        background: SOLID_DEFAULTS.background,
+        accent: SOLID_DEFAULTS.accent,
+        accent2: SOLID_DEFAULTS.accent2,
+        palette: '',
+      },
+    );
+    await applyAppearance(win);
+    return true;
+  };
+
   handle('settings:get', async (): Promise<SettingsSnapshot> => {
     const langResources = await languageResources();
     const languages = Object.keys(langResources)
@@ -144,7 +178,7 @@ export const onMainLoad = ({
         'options.alwaysOnTop': config.get('options.alwaysOnTop'),
         'options.hideMenu': config.get('options.hideMenu'),
         'options.customWindowTitle': config.get('options.customWindowTitle'),
-        'appearance.preset': config.get('appearance.preset'),
+        'appearance.preset': appearancePresetValue(),
         'appearance.background': normalizeHex(
           config.get('appearance.background'),
           SOLID_DEFAULTS.background,
@@ -191,7 +225,12 @@ export const onMainLoad = ({
         return;
       }
       case 'appearance.preset': {
-        config.set('appearance.preset', value);
+        const selected = String(value);
+        if (selected.startsWith('palette:') && (await applyPalette(selected))) {
+          return;
+        }
+        config.set('appearance.preset', selected);
+        config.set('appearance.palette', '');
         await applyAppearance(win);
         return;
       }
@@ -208,6 +247,7 @@ export const onMainLoad = ({
         if (config.get('appearance.preset') !== 'custom') {
           config.set('appearance.preset', 'custom');
         }
+        config.set('appearance.palette', '');
         await applyAppearance(win);
         return;
       }

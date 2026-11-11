@@ -10,6 +10,9 @@ import is from 'electron-is';
 import { satisfies } from 'semver';
 import { allPlugins } from 'virtual:plugins';
 
+import { applyAppearance } from '@/appearance';
+import { THEME_PALETTES } from '@/appearance/palettes';
+import { SOLID_DEFAULTS } from '@/appearance/theme';
 import { t } from '@/i18n';
 
 import * as config from './config';
@@ -60,6 +63,10 @@ export const mainMenuTemplate = async (
   win: BrowserWindow,
 ): Promise<MenuTemplate> => {
   const innerRefreshMenu = () => refreshMenu(win);
+  const activePalette =
+    config.get('appearance.preset') === 'custom'
+      ? (config.get('appearance.palette') ?? '')
+      : '';
   const { navigationHistory } = win.webContents;
   await loadAllMenuPlugins(win);
 
@@ -211,6 +218,37 @@ export const mainMenuTemplate = async (
                 }
               },
             })) ?? []),
+            {
+              label: t(
+                'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.premade-palettes',
+              ),
+              submenu: THEME_PALETTES.map((palette) => ({
+                type: 'radio' as const,
+                label: palette.name,
+                checked: activePalette === palette.id,
+                async click() {
+                  config.setPartial(
+                    'appearance',
+                    {
+                      preset: 'custom',
+                      background: palette.background,
+                      accent: palette.accent,
+                      accent2: palette.accent2,
+                      palette: palette.id,
+                    },
+                    {
+                      preset: 'custom',
+                      background: SOLID_DEFAULTS.background,
+                      accent: SOLID_DEFAULTS.accent,
+                      accent2: SOLID_DEFAULTS.accent2,
+                      palette: '',
+                    },
+                  );
+                  await applyAppearance(win);
+                  innerRefreshMenu();
+                },
+              })),
+            },
             { type: 'separator' as const },
             {
               label: t(

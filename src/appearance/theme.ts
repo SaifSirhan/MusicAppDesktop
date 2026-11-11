@@ -73,6 +73,34 @@ export function buildSolidThemeCss(colors: SolidColors): string {
   const accent2Ink = readableInk(accent2);
   const scheme = light ? 'light' : 'dark';
 
+  // YouTube Music keeps a handful of dark-theme text literals in its chrome
+  // that ignore the design tokens, so light palettes need direct overrides.
+  const lightOverrides = light
+    ? `
+tp-yt-paper-tab .tab-content {
+  color: var(--ma-ink-dim) !important;
+}
+tp-yt-paper-tab.iron-selected .tab-content {
+  color: var(--ma-ink) !important;
+}
+.subtitle.ytmusic-guide-entry-renderer {
+  color: var(--ma-ink-dim) !important;
+}
+ytmusic-queue-header-renderer .title {
+  color: var(--ma-ink-dim) !important;
+}
+ytmusic-chip-cloud-chip-renderer yt-formatted-string.text {
+  color: var(--ma-ink-dim) !important;
+}
+ytmusic-player-bar {
+  color: var(--ma-ink) !important;
+}
+input::placeholder {
+  color: color-mix(in srgb, var(--ma-ink) 50%, transparent) !important;
+}
+`
+    : '';
+
   return `/* MusicApp solid theme: ${bg} / ${accent} / ${accent2} */
 :root,
 body,
@@ -170,5 +198,5 @@ ytmusic-nav-bar,
 #nav-bar-background {
   background-color: var(--ma-surface) !important;
 }
-`;
+${lightOverrides}`;
 }

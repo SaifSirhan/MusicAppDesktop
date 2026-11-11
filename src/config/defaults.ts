@@ -43,6 +43,7 @@ export interface DefaultConfig {
     background: string;
     accent: string;
     accent2: string;
+    palette: string;
   };
 }
 
@@ -86,5 +87,6 @@ export const defaultConfig: DefaultConfig = {
     background: '#0f0f0f',
     accent: '#1d63ed',
     accent2: '#5b8bff',
+    palette: '',
   },
 };

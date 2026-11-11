@@ -177,7 +177,8 @@
                 "label": "Theme",
                 "submenu": {
                   "import-css-file": "Import custom CSS file",
-                  "no-theme": "No theme"
+                  "no-theme": "No theme",
+                  "premade-palettes": "Premade palettes"
                 }
               }
             }
