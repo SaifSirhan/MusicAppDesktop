@@ -12,4 +12,5 @@ export const brandPluginDefaults = {
   'taskbar-mediacontrol': { enabled: true },
   'notifications': { enabled: true },
   'spotify-import': { enabled: true },
+  'discovery': { enabled: true },
 } as const;
