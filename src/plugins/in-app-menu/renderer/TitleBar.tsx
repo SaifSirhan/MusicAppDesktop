@@ -56,11 +56,6 @@ const titleStyle = cacheNoArgs(
     &[data-macos='true'] {
       padding: 4px 4px 4px 74px;
     }
-
-    ytmusic-app:has(ytmusic-player[player-ui-state='FULLSCREEN'])
-      ~ &:not([data-show='true']) {
-      transform: translateY(calc(-1 * var(--menu-bar-height, 32px)));
-    }
   `,
 );
 

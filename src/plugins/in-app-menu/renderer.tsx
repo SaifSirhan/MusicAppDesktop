@@ -8,12 +8,6 @@ import { TitleBar } from './renderer/TitleBar';
 
 import type { RendererContext } from '@/types/contexts';
 
-const scrollStyle = `
-  html::-webkit-scrollbar {
-    background-color: red;
-  }
-`;
-
 const isMacOS = navigator.userAgent.includes('Macintosh');
 const isNotWindowsOrMacOS =
   !navigator.userAgent.includes('Windows') && !isMacOS;
@@ -28,9 +22,6 @@ export const onRendererLoad = async ({
   setConfig(await getConfig());
 
   document.title = APPLICATION_NAME;
-  const stylesheet = new CSSStyleSheet();
-  stylesheet.replaceSync(scrollStyle);
-  document.adoptedStyleSheets = [...document.adoptedStyleSheets, stylesheet];
 
   render(
     () => (

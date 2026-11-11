@@ -881,14 +881,31 @@ ytmusic-player-bar #play-pause-button,
 ytmusic-player-bar .play-pause-button,
 ytmusic-player-bar tp-yt-paper-icon-button[aria-label="Pause"],
 ytmusic-player-bar tp-yt-paper-icon-button[aria-label="Play"] {
-  width: 34px !important;
-  height: 34px !important;
-  padding: 4px !important;
+  box-sizing: border-box !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 7px !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
   color: var(--tm-accent) !important;
   border: 2px solid var(--tm-accent) !important;
+  border-radius: 50% !important;
   background: rgba(51, 255, 51, 0.06) !important;
   box-shadow: 0 0 10px rgba(51, 255, 51, 0.2) !important;
   transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* 22px glyph + 7px padding + 2px border = 40px border-box, so equal padding centres it */
+ytmusic-player-bar #play-pause-button yt-icon,
+ytmusic-player-bar .play-pause-button yt-icon,
+ytmusic-player-bar #play-pause-button iron-icon,
+ytmusic-player-bar .play-pause-button iron-icon {
+  width: 22px !important;
+  height: 22px !important;
+  --iron-icon-width: 22px !important;
+  --iron-icon-height: 22px !important;
+  color: var(--tm-accent) !important;
 }
 
 ytmusic-player-bar #play-pause-button:hover,
