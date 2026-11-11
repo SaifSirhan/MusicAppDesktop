@@ -119,4 +119,4 @@ directories:
   output: ./pack/
 publish:
   provider: generic
-  url: https://github.com/SaifSirhan/Musicapp/releases/download/desktop-latest
+  url: https://github.com/SaifSirhan/MusicAppDesktop/releases/download/desktop-latest
