@@ -1,0 +1,17 @@
+/* MusicApp brand over the native YouTube Music chrome: hide the YouTube Music
+   logo glyph and show the MusicApp wordmark in its place. Kept minimal so it
+   layers cleanly under any appearance preset. */
+#logo svg,
+ytmusic-logo svg {
+  display: none !important;
+}
+
+#logo::after {
+  content: "MusicApp" !important;
+  color: var(--yt-spec-text-primary, #fff) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  vertical-align: middle !important;
+}

@@ -11,4 +11,5 @@ export const brandPluginDefaults = {
   'shortcuts': { enabled: true },
   'taskbar-mediacontrol': { enabled: true },
   'notifications': { enabled: true },
+  'spotify-import': { enabled: true },
 } as const;

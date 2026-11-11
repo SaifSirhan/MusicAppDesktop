@@ -319,7 +319,7 @@ export const mainMenuTemplate = async (
                   },
                 },
                 {
-                  label: 'Default (YouTube Music)',
+                  label: 'Default (native)',
                   type: 'radio',
                   checked: config.get('appearance.preset') === 'default',
                   click() {
