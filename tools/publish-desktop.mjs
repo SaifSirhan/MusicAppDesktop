@@ -121,6 +121,31 @@ gh(
   { stdio: 'inherit' },
 );
 
+// Keep the rolling tag on the released commit so the repo's Tags view and
+// "Source code" archive match the build we just published.
+try {
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  }).trim();
+  gh([
+    'api',
+    '-X',
+    'PATCH',
+    `repos/${repo}/git/refs/tags/${tag}`,
+    '-f',
+    `sha=${head}`,
+    '-F',
+    'force=true',
+  ]);
+  console.log(`\nTag ${tag} → ${head.slice(0, 7)}`);
+} catch (err) {
+  console.warn(
+    `\n⚠ Could not move tag ${tag} (non-fatal):`,
+    err instanceof Error ? err.message : err,
+  );
+}
+
 const base = `https://github.com/${repo}/releases/download/${tag}`;
 const head = async (url) => {
   const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
