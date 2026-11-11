@@ -41,6 +41,12 @@ ytmusic-app[is-bauhaus-sidenav-enabled] #mini-guide-spacer.ytmusic-app {
   ) !important;
 }
 
+/* YTM's fixed guide drawer is offset by the nav bar height only, so without
+   this its first entries render underneath the nav bar when our menu bar is on. */
+ytmusic-app:not([is-bauhaus-sidenav-enabled]) ytmusic-guide-renderer {
+  margin-top: var(--menu-bar-height) !important;
+}
+
 @media (max-width: 935px) {
   ytmusic-app[is-bauhaus-sidenav-enabled] #guide-spacer.ytmusic-app {
     margin-top: calc(var(--menu-bar-height, 36px)) !important;

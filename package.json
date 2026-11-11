@@ -2,7 +2,7 @@
   "name": "musicapp",
   "desktopName": "com.sharl.musicapp.desktop",
   "productName": "MusicApp",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "MusicApp Desktop - a Phosphor-themed YouTube Music client",
   "main": "./dist/main/index.js",
   "type": "module",
