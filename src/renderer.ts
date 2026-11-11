@@ -4,6 +4,7 @@ import 'mdui/mdui.css';
 import 'mdui';
 
 import { loadI18n, setLanguage, t as i18t } from '@/i18n';
+import { LoggerPrefix } from '@/utils';
 import {
   defaultTrustedTypePolicy,
   registerWindowDefaultTrustedTypePolicy,
@@ -325,11 +326,21 @@ async function onApiLoaded() {
 
   for (const [id, plugin] of Object.entries(getAllLoadedRendererPlugins())) {
     if (typeof plugin.renderer !== 'function') {
-      await plugin.renderer?.onPlayerApiReady?.call(
-        plugin.renderer,
-        api!,
-        createContext(id),
-      );
+      try {
+        await plugin.renderer?.onPlayerApiReady?.call(
+          plugin.renderer,
+          api!,
+          createContext(id),
+        );
+      } catch (err) {
+        // One plugin failing must not keep the remaining plugins from
+        // receiving the player API.
+        console.error(
+          LoggerPrefix,
+          `Plugin "${id}" failed in onPlayerApiReady`,
+          err,
+        );
+      }
     }
   }
 
@@ -468,11 +479,19 @@ const main = async () => {
     if (api) {
       const plugin = getLoadedRendererPlugin(id);
       if (plugin && typeof plugin.renderer !== 'function') {
-        await plugin.renderer?.onPlayerApiReady?.call(
-          plugin.renderer,
-          api,
-          createContext(id),
-        );
+        try {
+          await plugin.renderer?.onPlayerApiReady?.call(
+            plugin.renderer,
+            api,
+            createContext(id),
+          );
+        } catch (err) {
+          console.error(
+            LoggerPrefix,
+            `Plugin "${id}" failed in onPlayerApiReady`,
+            err,
+          );
+        }
       }
     }
   });

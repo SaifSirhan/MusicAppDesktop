@@ -371,6 +371,9 @@ async function createMainWindow() {
     show: false,
     webPreferences: {
       contextIsolation: true,
+      // Keep requestAnimationFrame running while the window is occluded so
+      // volume fades (crossfade) and other rAF-driven visuals do not freeze.
+      backgroundThrottling: false,
       preload: path.join(__dirname, '..', 'preload', 'preload.cjs'),
       ...(isTesting()
         ? undefined
