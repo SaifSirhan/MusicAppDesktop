@@ -28,7 +28,7 @@ export default createPlugin({
   config: {
     enabled: true,
   },
-  async menu({ window }) {
+  menu({ window }) {
     return [
       {
         label: 'Import Spotify playlist…',

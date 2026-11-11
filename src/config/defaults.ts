@@ -38,7 +38,7 @@ export interface DefaultConfig {
     customWindowTitle: string;
   };
   'plugins': Record<string, unknown>;
-  appearance: {
+  'appearance': {
     preset: 'default' | 'docker' | 'phosphor';
   };
 }
@@ -78,7 +78,7 @@ export const defaultConfig: DefaultConfig = {
     customWindowTitle: 'MusicApp',
   },
   'plugins': {},
-  appearance: {
+  'appearance': {
     preset: 'docker',
   },
 };

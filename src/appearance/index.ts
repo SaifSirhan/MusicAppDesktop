@@ -1,8 +1,8 @@
 import * as config from '@/config';
 import { LoggerPrefix } from '@/utils';
 
-import { buildAppearanceCss, parseAppearancePreset } from './buildCss';
 import brandCss from './brand.css?inline';
+import { buildAppearanceCss, parseAppearancePreset } from './buildCss';
 import dockerCss from './docker.css?inline';
 import phosphorCss from './phosphor.css?inline';
 
