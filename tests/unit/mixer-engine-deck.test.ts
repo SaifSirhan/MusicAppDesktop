@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeBuffer, FakeContext, FakeGain } from './fake-audio';
+
 import { Deck } from '../../src/plugins/mixer/renderer/engine';
 
 const setup = () => {
