@@ -422,6 +422,10 @@
       "description": "Always set the sidebar in compact mode",
       "name": "Compact Sidebar"
     },
+    "mixer": {
+      "description": "Two-deck DJ mixer with a crossfader",
+      "name": "Mixer"
+    },
     "crossfade": {
       "description": "Crossfade between songs",
       "menu": {
