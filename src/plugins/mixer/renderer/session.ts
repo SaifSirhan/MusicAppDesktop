@@ -1,3 +1,7 @@
+import type { MixerClient } from './client';
+import type { Deck } from './engine';
+import type { CacheProgress, MixerErrorCode } from '../types';
+
 export type MixerQueueItem = {
   videoId: string;
   title: string;
@@ -98,4 +102,85 @@ export const formatTime = (seconds: number): string => {
   return hours > 0
     ? `${hours}:${pad(minutes)}:${pad(secs)}`
     : `${minutes}:${pad(secs)}`;
+};
+
+export const errorCopy: Record<MixerErrorCode, string> = {
+  PO_TOKEN: 'YouTube asked for verification. Retry in a moment.',
+  NETWORK: "Couldn't cache this track. Check your connection and retry.",
+  UNPLAYABLE: "This track can't be played from YouTube Music.",
+  WRITE: "Couldn't save the track. Check disk space and try again.",
+};
+
+const DECODE_ERROR = 'Could not decode this track. Try another one.';
+
+export const progressLabel = (progress: CacheProgress): string => {
+  const percent = (ratio: number) => `${Math.round(ratio * 100)}%`;
+
+  switch (progress.phase) {
+    case 'resolved':
+      return `Found ${progress.metadata.title}`;
+    case 'downloading':
+      return `Downloading ${percent(progress.ratio)}`;
+    case 'loading':
+      return 'Loading from YouTube…';
+    case 'preparing':
+      return 'Preparing audio…';
+    case 'converting':
+      return `Converting ${percent(progress.ratio)}`;
+    case 'saving':
+      return 'Saving…';
+    case 'tagging':
+      return 'Tagging…';
+  }
+};
+
+export type LoadDeps = {
+  client: Pick<MixerClient, 'cacheTrack' | 'readTrack'>;
+  decode: (data: ArrayBuffer) => Promise<AudioBuffer>;
+  onProgress?: (progress: CacheProgress | null) => void;
+};
+
+// The deck only accepts a result for its newest token and while it is still
+// loading, so a slow load can never land on a deck that moved on. A later
+// loadTrack takes over the deck through beginLoading(); the earlier load's
+// result is then dropped here instead of being reported as an error.
+export const loadTrack = async (
+  deps: LoadDeps,
+  deck: Deck,
+  item: MixerQueueItem,
+): Promise<void> => {
+  const token = deck.beginLoading();
+  const isCurrent = () => deck.getLoadToken() === token;
+  const report = (progress: CacheProgress | null) => {
+    if (!isCurrent()) return;
+
+    try {
+      deps.onProgress?.(progress);
+    } catch {
+      // A failing progress sink must not abort the load.
+    }
+  };
+  const fail = (message: string) => {
+    if (isCurrent()) deck.failLoading(message, token);
+  };
+
+  try {
+    report(null);
+
+    const result = await deps.client.cacheTrack(item.videoId);
+    if (!result.ok) {
+      fail(errorCopy[result.code] ?? errorCopy.NETWORK);
+
+      return;
+    }
+
+    const data = await deps.client.readTrack(result.track.path);
+    const buffer = await deps.decode(data);
+
+    if (isCurrent()) deck.load(buffer, token);
+  } catch {
+    fail(DECODE_ERROR);
+  } finally {
+    report(null);
+  }
 };
