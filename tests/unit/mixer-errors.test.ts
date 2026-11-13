@@ -4,12 +4,10 @@ import { toCacheErrorCode } from '../../src/plugins/mixer/backend/errors';
 
 describe('toCacheErrorCode', () => {
   it('maps unplayable and login-required errors', () => {
-    expect(toCacheErrorCode(new Error('[UNPLAYABLE] nope'))).toBe(
+    expect(toCacheErrorCode(new Error('[UNPLAYABLE] nope'))).toBe('UNPLAYABLE');
+    expect(toCacheErrorCode(new Error('[LOGIN_REQUIRED] sign in'))).toBe(
       'UNPLAYABLE',
     );
-    expect(
-      toCacheErrorCode(new Error('[LOGIN_REQUIRED] sign in')),
-    ).toBe('UNPLAYABLE');
   });
 
   it('maps filesystem write errors', () => {
@@ -17,6 +15,9 @@ describe('toCacheErrorCode', () => {
       'WRITE',
     );
     expect(toCacheErrorCode(new Error('ENOSPC: no space left'))).toBe('WRITE');
+    expect(
+      toCacheErrorCode({ code: 'EACCES', message: 'permission denied' }),
+    ).toBe('WRITE');
   });
 
   it('maps token/botguard failures', () => {
@@ -28,6 +29,9 @@ describe('toCacheErrorCode', () => {
 
   it('falls back to network on anything else', () => {
     expect(toCacheErrorCode(new Error('fetch failed'))).toBe('NETWORK');
+    expect(toCacheErrorCode(new Error('HTTP 403: challenge page'))).toBe(
+      'NETWORK',
+    );
     expect(toCacheErrorCode('boom')).toBe('NETWORK');
   });
 });

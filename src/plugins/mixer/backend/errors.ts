@@ -1,11 +1,28 @@
 import type { MixerErrorCode } from '../types';
 
+const asRecord = (error: unknown): Record<string, unknown> | undefined =>
+  typeof error === 'object' && error !== null
+    ? (error as Record<string, unknown>)
+    : undefined;
+
+const messageOf = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+
+  const message = asRecord(error)?.message;
+
+  return typeof message === 'string' ? message : String(error);
+};
+
 export const toCacheErrorCode = (error: unknown): MixerErrorCode => {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = messageOf(error);
 
   if (/UNPLAYABLE|LOGIN_REQUIRED/i.test(message)) return 'UNPLAYABLE';
-  if (/\b(ENOSPC|EACCES|EPERM|EROFS)\b/.test(message)) return 'WRITE';
-  if (/po.?token|botguard|challenge/i.test(message)) return 'PO_TOKEN';
+
+  const code = asRecord(error)?.code;
+  const haystack = `${typeof code === 'string' ? code : ''} ${message}`;
+
+  if (/\b(ENOSPC|EACCES|EPERM|EROFS)\b/i.test(haystack)) return 'WRITE';
+  if (/po.?token|botguard/i.test(message)) return 'PO_TOKEN';
 
   return 'NETWORK';
 };
