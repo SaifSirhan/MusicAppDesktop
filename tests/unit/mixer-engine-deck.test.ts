@@ -25,6 +25,8 @@ describe('Deck', () => {
     deck.beginLoading();
     expect(deck.getCore().status).toBe('loading');
 
+    deck.beginLoading();
+
     deck.load(fakeBuffer(200));
     expect(deck.getCore()).toEqual({
       status: 'ready',
@@ -36,6 +38,7 @@ describe('Deck', () => {
 
   it('plays a one-shot source and advances the position', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
 
     await deck.play();
@@ -50,6 +53,7 @@ describe('Deck', () => {
 
   it('pauses at the current position and holds it', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     await deck.play();
 
@@ -65,6 +69,7 @@ describe('Deck', () => {
 
   it('seek while playing recreates the source at the new offset', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     await deck.play();
 
@@ -82,6 +87,7 @@ describe('Deck', () => {
 
   it('applies tempo with clamping and rebases the position', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     await deck.play();
 
@@ -99,6 +105,7 @@ describe('Deck', () => {
 
   it('marks the deck ended when the source ends and replays from zero', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     await deck.play();
 
@@ -122,13 +129,54 @@ describe('Deck', () => {
 
   it('drops the previous source when a new buffer loads', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     await deck.play();
+
+    deck.beginLoading();
 
     deck.load(fakeBuffer(120));
     expect(ctx.createdSources[0].stopped).toBe(true);
     expect(deck.getCore().duration).toBe(120);
     expect(deck.getCore().status).toBe('ready');
+  });
+
+  it('ignores a buffer that arrives after a newer load started', () => {
+    const { ctx, deck } = setup();
+    deck.beginLoading();
+    const stale = deck.getLoadToken();
+    deck.beginLoading();
+
+    deck.load(fakeBuffer(200), stale);
+    expect(deck.getCore().status).toBe('loading');
+    expect(deck.hasBuffer()).toBe(false);
+    expect(ctx.createdSources).toHaveLength(0);
+
+    deck.load(fakeBuffer(90), deck.getLoadToken());
+    expect(deck.getCore()).toEqual({
+      status: 'ready',
+      duration: 90,
+      error: null,
+    });
+  });
+
+  it('ignores loads and failures outside the loading state', async () => {
+    const { deck } = setup();
+    deck.beginLoading();
+    deck.load(fakeBuffer(200));
+
+    deck.load(fakeBuffer(10));
+    expect(deck.getCore().duration).toBe(200);
+
+    deck.failLoading('NETWORK');
+    expect(deck.getCore().status).toBe('ready');
+    expect(deck.getCore().error).toBeNull();
+
+    await deck.play();
+    deck.beginLoading();
+    deck.load(fakeBuffer(50));
+    expect(deck.getCore().status).toBe('ready');
+    expect(deck.getCore().duration).toBe(50);
   });
 
   it('notifies subscribers of state changes until unsubscribed', () => {
@@ -140,12 +188,14 @@ describe('Deck', () => {
     expect(listener).toHaveBeenCalledTimes(1);
 
     unsubscribe();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it('disposes sources and resets to empty', async () => {
     const { ctx, deck } = setup();
+    deck.beginLoading();
     deck.load(fakeBuffer(200));
     await deck.play();
 

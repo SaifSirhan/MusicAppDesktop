@@ -46,10 +46,7 @@ export type DeckAction =
   | { type: 'ended' }
   | { type: 'reset' };
 
-export const deckReducer = (
-  state: DeckCore,
-  action: DeckAction,
-): DeckCore => {
+export const deckReducer = (state: DeckCore, action: DeckAction): DeckCore => {
   switch (action.type) {
     case 'load-start':
       return { status: 'loading', duration: 0, error: null };
@@ -72,9 +69,7 @@ export const deckReducer = (
         ? { ...state, status: 'paused' }
         : state;
     case 'ended':
-      return state.status === 'playing'
-        ? { ...state, status: 'ended' }
-        : state;
+      return state.status === 'playing' ? { ...state, status: 'ended' } : state;
     case 'reset':
       return { ...initialDeckCore };
   }
@@ -111,6 +106,7 @@ export class Deck {
   private offset = 0;
   private rate = 1;
   private volume = 1;
+  private loadToken = 0;
 
   constructor(ctx: AudioContext, output: AudioNode, id: DeckId) {
     this.ctx = ctx;
@@ -148,24 +144,32 @@ export class Deck {
     };
   }
 
+  getLoadToken(): number {
+    return this.loadToken;
+  }
+
   beginLoading(): void {
+    this.loadToken += 1;
     this.stopSource();
     this.buffer = null;
     this.offset = 0;
     this.dispatch({ type: 'load-start' });
   }
 
-  load(buffer: AudioBuffer): void {
+  load(buffer: AudioBuffer, token = this.loadToken): void {
+    // Only the load that is still current may install its buffer: a slow
+    // decode finishing after a newer beginLoading() must not resurrect.
+    if (this.core.status !== 'loading' || token !== this.loadToken) return;
+
     this.stopSource();
-    if (this.core.status !== 'loading') {
-      this.dispatch({ type: 'load-start' });
-    }
     this.buffer = buffer;
     this.offset = 0;
     this.dispatch({ type: 'load-ready', duration: buffer.duration });
   }
 
-  failLoading(message: string): void {
+  failLoading(message: string, token = this.loadToken): void {
+    if (this.core.status !== 'loading' || token !== this.loadToken) return;
+
     this.stopSource();
     this.buffer = null;
     this.offset = 0;
