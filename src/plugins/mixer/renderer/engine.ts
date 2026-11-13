@@ -148,53 +148,69 @@ export class Deck {
     return this.loadToken;
   }
 
-  beginLoading(): void {
+  beginLoading(): number {
     this.loadToken += 1;
     this.stopSource();
     this.buffer = null;
     this.offset = 0;
     this.dispatch({ type: 'load-start' });
+
+    return this.loadToken;
   }
 
-  load(buffer: AudioBuffer, token = this.loadToken): void {
+  load(buffer: AudioBuffer, token: number): boolean {
     // Only the load that is still current may install its buffer: a slow
     // decode finishing after a newer beginLoading() must not resurrect.
-    if (this.core.status !== 'loading' || token !== this.loadToken) return;
+    if (this.core.status !== 'loading' || token !== this.loadToken) {
+      return false;
+    }
 
     this.stopSource();
     this.buffer = buffer;
     this.offset = 0;
     this.dispatch({ type: 'load-ready', duration: buffer.duration });
+
+    return true;
   }
 
-  failLoading(message: string, token = this.loadToken): void {
-    if (this.core.status !== 'loading' || token !== this.loadToken) return;
+  failLoading(message: string, token: number): boolean {
+    if (this.core.status !== 'loading' || token !== this.loadToken) {
+      return false;
+    }
 
     this.stopSource();
     this.buffer = null;
     this.offset = 0;
     this.dispatch({ type: 'load-error', message });
+
+    return true;
   }
 
-  async play(): Promise<void> {
+  async play(): Promise<boolean> {
     const { status } = this.core;
     if (
       !this.buffer ||
       (status !== 'ready' && status !== 'paused' && status !== 'ended')
     ) {
-      return;
+      return false;
     }
 
     if (this.ctx.state === 'suspended') {
       await this.ctx.resume();
     }
 
-    if (status === 'ended') {
+    // A context the browser keeps suspended would report 'playing' while no
+    // audio advances, so the caller is told to ask for a fresh gesture.
+    if (this.ctx.state !== 'running') return false;
+
+    if (status === 'ended' && this.offset >= this.getDuration()) {
       this.offset = 0;
     }
 
     this.startSource();
     this.dispatch({ type: 'play' });
+
+    return true;
   }
 
   pause(): void {
@@ -285,9 +301,13 @@ export class Deck {
       this.dispatch({ type: 'ended' });
     };
 
-    this.startedAt = this.ctx.currentTime;
+    // Schedule and bookkeeping share one clock reading so position() cannot
+    // drift from the audio by the time spent building the node.
+    const when = this.ctx.currentTime;
+
+    this.startedAt = when;
     this.source = source;
-    source.start(0, this.offset);
+    source.start(when, this.offset);
   }
 
   private stopSource(): void {
@@ -386,12 +406,14 @@ export class MixerEngine {
     );
   }
 
-  async resume(): Promise<void> {
-    if (this.closed) return;
+  async resume(): Promise<boolean> {
+    if (this.closed) return false;
 
     if (this.context.state === 'suspended') {
       await this.context.resume();
     }
+
+    return this.context.state === 'running';
   }
 
   async close(): Promise<void> {

@@ -77,11 +77,13 @@ describe('MixerEngine', () => {
 
   it('stops both decks and closes the context', async () => {
     const { ctx, engine } = setup();
-    engine.decks.A.beginLoading();
-    engine.decks.A.load({
-      duration: 10,
-      getChannelData: () => new Float32Array(0),
-    } as unknown as AudioBuffer);
+    engine.decks.A.load(
+      {
+        duration: 10,
+        getChannelData: () => new Float32Array(0),
+      } as unknown as AudioBuffer,
+      engine.decks.A.beginLoading(),
+    );
     await engine.decks.A.play();
 
     await engine.close();
