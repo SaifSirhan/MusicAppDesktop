@@ -1,0 +1,33 @@
+import { describe, expect, it } from 'vitest';
+
+import { toCacheErrorCode } from '../../src/plugins/mixer/backend/errors';
+
+describe('toCacheErrorCode', () => {
+  it('maps unplayable and login-required errors', () => {
+    expect(toCacheErrorCode(new Error('[UNPLAYABLE] nope'))).toBe(
+      'UNPLAYABLE',
+    );
+    expect(
+      toCacheErrorCode(new Error('[LOGIN_REQUIRED] sign in')),
+    ).toBe('UNPLAYABLE');
+  });
+
+  it('maps filesystem write errors', () => {
+    expect(toCacheErrorCode(new Error('EACCES: permission denied'))).toBe(
+      'WRITE',
+    );
+    expect(toCacheErrorCode(new Error('ENOSPC: no space left'))).toBe('WRITE');
+  });
+
+  it('maps token/botguard failures', () => {
+    expect(toCacheErrorCode(new Error('BotGuard challenge failed'))).toBe(
+      'PO_TOKEN',
+    );
+    expect(toCacheErrorCode(new Error('po_token missing'))).toBe('PO_TOKEN');
+  });
+
+  it('falls back to network on anything else', () => {
+    expect(toCacheErrorCode(new Error('fetch failed'))).toBe('NETWORK');
+    expect(toCacheErrorCode('boom')).toBe('NETWORK');
+  });
+});
