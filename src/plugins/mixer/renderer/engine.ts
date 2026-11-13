@@ -315,3 +315,84 @@ export class Deck {
     }
   }
 }
+
+export class MixerEngine {
+  readonly context: AudioContext;
+  readonly decks: Record<DeckId, Deck>;
+
+  private readonly master: GainNode;
+  private readonly xfadeA: GainNode;
+  private readonly xfadeB: GainNode;
+
+  private crossfader = 0;
+  private masterVolume = 1;
+
+  constructor(context: AudioContext = new AudioContext()) {
+    this.context = context;
+
+    this.master = context.createGain();
+    this.master.gain.value = 1;
+    this.master.connect(context.destination);
+
+    this.xfadeA = context.createGain();
+    this.xfadeB = context.createGain();
+    this.xfadeA.connect(this.master);
+    this.xfadeB.connect(this.master);
+
+    this.decks = {
+      A: new Deck(context, this.xfadeA, 'A'),
+      B: new Deck(context, this.xfadeB, 'B'),
+    };
+
+    const gains = crossfaderGains(this.crossfader);
+    this.xfadeA.gain.value = gains.a;
+    this.xfadeB.gain.value = gains.b;
+  }
+
+  getCrossfader(): number {
+    return this.crossfader;
+  }
+
+  setCrossfader(position: number): void {
+    this.crossfader = Number.isFinite(position)
+      ? Math.min(1, Math.max(-1, position))
+      : 0;
+
+    const gains = crossfaderGains(this.crossfader);
+    const now = this.context.currentTime;
+
+    this.xfadeA.gain.setTargetAtTime(gains.a, now, 0.01);
+    this.xfadeB.gain.setTargetAtTime(gains.b, now, 0.01);
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  setMasterVolume(volume: number): void {
+    this.masterVolume = Number.isFinite(volume)
+      ? Math.min(1, Math.max(0, volume))
+      : 0;
+
+    this.master.gain.setTargetAtTime(
+      this.masterVolume,
+      this.context.currentTime,
+      0.01,
+    );
+  }
+
+  async resume(): Promise<void> {
+    if (this.context.state === 'suspended') {
+      await this.context.resume();
+    }
+  }
+
+  async close(): Promise<void> {
+    this.decks.A.dispose();
+    this.decks.B.dispose();
+    this.xfadeA.disconnect();
+    this.xfadeB.disconnect();
+    this.master.disconnect();
+    await this.context.close();
+  }
+}
