@@ -1,5 +1,6 @@
 import type { SkipSilencesPluginConfig } from './index';
 import type { RendererContext } from '@/types/contexts';
+import { isCrossfading } from '../crossfade/state';
 
 let config: SkipSilencesPluginConfig;
 
@@ -48,6 +49,10 @@ const audioCanPlayListener = (e: CustomEvent<Compressor>) => {
     setTimeout(() => {
       const currentVolume = getMaxVolume(analyser, fftBins);
 
+      // A crossfade ramp is intentional attenuation, not silence in the track;
+      // never latch "silent" while one is running.
+      if (isCrossfading()) isSilent = false;
+
       let history = 0;
       if (currentVolume > threshold && isSilent) {
         // Trigger quickly, short history
@@ -80,8 +85,10 @@ const audioCanPlayListener = (e: CustomEvent<Compressor>) => {
               video.volume === 0)
           )
         ) {
-          isSilent = true;
-          skipSilence();
+          if (!isCrossfading()) {
+            isSilent = true;
+            skipSilence();
+          }
         }
       }
 
@@ -95,6 +102,7 @@ const audioCanPlayListener = (e: CustomEvent<Compressor>) => {
   looper();
 
   const skipSilence = () => {
+    if (isCrossfading()) return;
     if (config.onlySkipBeginning && hasAudioStarted) {
       return;
     }

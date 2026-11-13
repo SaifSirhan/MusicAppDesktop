@@ -2,6 +2,7 @@ import { t } from '@/i18n';
 import { createPlugin } from '@/utils';
 
 import { VolumeFader } from './fader';
+import { setCrossfading } from './state';
 
 export type CrossfadePluginConfig = {
   enabled: boolean;
@@ -69,11 +70,18 @@ export default createPlugin<
       const getVideoID = (url: string) =>
         new URLSearchParams(url.split('?').at(-1)).get('v');
 
-      const createFader = (duration: number) =>
-        new VolumeFader(video, {
+      let activeFader: VolumeFader | undefined;
+      const createFader = (duration: number) => {
+        // Stop the previous fade so its rAF loop and completion callback die.
+        // Otherwise a stale fade-out keeps clicking "next" after the track has
+        // already advanced, and overlapping fades fight over the volume.
+        activeFader?.stop();
+        activeFader = new VolumeFader(video, {
           fadeScaling: this.config?.fadeScaling,
           fadeDuration: Math.max(MIN_FADE_DURATION, duration),
         });
+        return activeFader;
+      };
 
       // YouTube only exposes direct audio URLs for the first ~1 MB of a
       // track now, so a second overlapping stream cannot be loaded. Transition
@@ -81,7 +89,10 @@ export default createPlugin<
       const fadeIn = () => {
         const volume = Math.max(0.01, targetVolume);
         video.volume = 0;
-        createFader(this.config?.fadeInDuration ?? 0).fadeTo(volume);
+        setCrossfading(true);
+        createFader(this.config?.fadeInDuration ?? 0).fadeTo(volume, () => {
+          setCrossfading(false);
+        });
       };
 
       window.navigation.addEventListener('navigate', (event) => {
@@ -115,8 +126,14 @@ export default createPlugin<
           remaining * 1000,
         );
 
+        setCrossfading(true);
         createFader(fadeDuration).fadeOut(() => {
-          document.querySelector<HTMLButtonElement>('.next-button')?.click();
+          setCrossfading(false);
+          // Only skip if this track is still current; natural autoplay may have
+          // already advanced us, and clicking next then would skip again.
+          if (getVideoID(location.href) === fadingOutFor) {
+            document.querySelector<HTMLButtonElement>('.next-button')?.click();
+          }
         });
       });
     },
