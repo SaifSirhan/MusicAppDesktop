@@ -326,6 +326,7 @@ export class MixerEngine {
 
   private crossfader = 0;
   private masterVolume = 1;
+  private closed = false;
 
   constructor(context: AudioContext = new AudioContext()) {
     this.context = context;
@@ -354,6 +355,8 @@ export class MixerEngine {
   }
 
   setCrossfader(position: number): void {
+    if (this.closed) return;
+
     this.crossfader = Number.isFinite(position)
       ? Math.min(1, Math.max(-1, position))
       : 0;
@@ -370,6 +373,8 @@ export class MixerEngine {
   }
 
   setMasterVolume(volume: number): void {
+    if (this.closed) return;
+
     this.masterVolume = Number.isFinite(volume)
       ? Math.min(1, Math.max(0, volume))
       : 0;
@@ -382,12 +387,17 @@ export class MixerEngine {
   }
 
   async resume(): Promise<void> {
+    if (this.closed) return;
+
     if (this.context.state === 'suspended') {
       await this.context.resume();
     }
   }
 
   async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+
     this.decks.A.dispose();
     this.decks.B.dispose();
     this.xfadeA.disconnect();

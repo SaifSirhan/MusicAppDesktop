@@ -68,6 +68,11 @@ describe('MixerEngine', () => {
 
     await engine.resume();
     expect(ctx.state).toBe('running');
+
+    const closed = setup();
+    closed.ctx.state = 'closed';
+    await closed.engine.resume();
+    expect(closed.ctx.state).toBe('closed');
   });
 
   it('stops both decks and closes the context', async () => {
@@ -83,5 +88,22 @@ describe('MixerEngine', () => {
     expect(ctx.createdSources[0].stopped).toBe(true);
     expect(ctx.state).toBe('closed');
     expect(engine.decks.A.getCore().status).toBe('empty');
+  });
+
+  it('ignores control changes and repeat closes after closing', async () => {
+    const { ctx, engine } = setup();
+    const [, xfadeA, xfadeB, , master] = ctx.createdGains;
+
+    await engine.close();
+    engine.setCrossfader(1);
+    engine.setMasterVolume(0);
+
+    expect(engine.getCrossfader()).toBe(0);
+    expect(engine.getMasterVolume()).toBe(1);
+    expect(xfadeA.gain.value).toBeCloseTo(Math.SQRT1_2, 6);
+    expect(xfadeB.gain.value).toBeCloseTo(Math.SQRT1_2, 6);
+    expect(master.gain.value).toBe(1);
+
+    await expect(engine.close()).resolves.toBeUndefined();
   });
 });
