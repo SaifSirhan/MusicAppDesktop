@@ -4,9 +4,8 @@ import {
   deckPosition,
   deckReducer,
   initialDeckCore,
+  type DeckCore,
 } from '../../src/plugins/mixer/renderer/engine';
-
-import type { DeckCore } from '../../src/plugins/mixer/renderer/engine';
 
 const at = (status: DeckCore['status']): DeckCore => ({
   ...initialDeckCore,
