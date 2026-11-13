@@ -26,7 +26,7 @@ describe('computePeaks', () => {
 
     expect(peaks).toHaveLength(4);
     expect(peaks[0]).toBe(1);
-    expect(peaks[1]).toBe(1);
+    expect(peaks[1]).toBeCloseTo(0.25, 6);
     expect(peaks[2]).toBeCloseTo(0.25, 6);
     expect(peaks[3]).toBeCloseTo(0.25, 6);
   });
@@ -34,6 +34,21 @@ describe('computePeaks', () => {
   it('always produces at least one bucket', () => {
     expect(computePeaks(new Float32Array([0.3]), 0)).toHaveLength(1);
     expect(computePeaks(new Float32Array([0.3]), -2)[0]).toBeCloseTo(0.3, 6);
+  });
+
+  it('keeps the tail audible when buckets exceed samples', () => {
+    const peaks = computePeaks(new Float32Array([0.5, 0.9]), 10);
+
+    expect(peaks).toHaveLength(10);
+    expect(peaks[0]).toBeCloseTo(0.5, 6);
+    expect(peaks[9]).toBeCloseTo(0.9, 6);
+    expect(Math.min(...peaks)).toBeGreaterThan(0);
+  });
+
+  it('falls back to one bucket for a non-finite bucket count', () => {
+    expect(computePeaks(new Float32Array([0.4, 0.8]), Number.NaN)).toHaveLength(
+      1,
+    );
   });
 });
 
