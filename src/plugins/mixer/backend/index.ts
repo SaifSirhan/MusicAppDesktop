@@ -5,7 +5,7 @@ import { app } from 'electron';
 
 import { fetchTrack } from '@/providers/track-cache';
 
-import { evictCache } from './cache';
+import { clampMaxBytes, evictCache } from './cache';
 import { createMixerBackend } from './handlers';
 
 import type { MixerPluginConfig } from '../types';
@@ -17,10 +17,12 @@ export const onMainLoad = ({
   getConfig,
 }: BackendContext<MixerPluginConfig>) => {
   const cacheDir = join(app.getPath('userData'), 'mixer-cache');
+  const getMaxBytes = async () =>
+    clampMaxBytes((await getConfig()).cacheMaxBytes);
 
   const backend = createMixerBackend({
     cacheDir,
-    getMaxBytes: async () => (await getConfig()).cacheMaxBytes,
+    getMaxBytes,
     fetchTrack: (options) => fetchTrack(win, options),
     readFile,
     evict: evictCache,
@@ -31,4 +33,14 @@ export const onMainLoad = ({
     backend.cacheTrack(videoId),
   );
   ipc.handle('mixer:read-track', (path: unknown) => backend.readTrack(path));
+
+  // Spec §8: the cache is evicted at startup as well as after each cache.
+  // Non-blocking and never throws: startup eviction is best-effort.
+  (async () => {
+    try {
+      evictCache(cacheDir, await getMaxBytes());
+    } catch {
+      // Startup eviction is best-effort.
+    }
+  })();
 };

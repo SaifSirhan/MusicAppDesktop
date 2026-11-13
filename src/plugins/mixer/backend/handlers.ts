@@ -15,7 +15,7 @@ export type MixerBackendDeps = {
   getMaxBytes: () => Promise<number>;
   fetchTrack: (options: FetchTrackOptions) => Promise<CachedTrack>;
   readFile: (path: string) => Promise<Buffer>;
-  evict: (dir: string, maxBytes: number) => string[];
+  evict: (dir: string, maxBytes: number, excludePaths?: string[]) => string[];
   sendProgress: (progress: CacheProgress) => void;
 };
 
@@ -55,7 +55,9 @@ export const createMixerBackend = (deps: MixerBackendDeps) => {
         });
 
         try {
-          evict(cacheDir, maxBytes);
+          // Never evict the file just returned: a skipped pre-existing file
+          // keeps its old mtime and would otherwise be the first candidate.
+          evict(cacheDir, maxBytes, [result.path]);
         } catch {
           // Eviction is best-effort; the downloaded track is still valid.
         }

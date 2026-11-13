@@ -21,10 +21,12 @@ export const createMixerClient = (ipc: MixerIpc): MixerClient => ({
     (await ipc.invoke('mixer:read-track', path)) as ArrayBuffer,
 
   onCacheProgress: (listener) => {
-    // RendererContext only exposes channel-wide removal, so the panel owns a
-    // single progress subscription; guard against post-unsubscribe delivery.
+    // RendererContext.ipc.on strips the Electron event and forwards only the
+    // payload args, so this handler is payload-first. The context only exposes
+    // channel-wide removal, so the panel owns a single progress subscription;
+    // guard against post-unsubscribe delivery.
     let active = true;
-    const handler = (_event: unknown, progress: CacheProgress) => {
+    const handler = (progress: CacheProgress) => {
       if (active) listener(progress);
     };
     ipc.on('mixer:cache-progress', handler);

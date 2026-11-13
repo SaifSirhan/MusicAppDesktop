@@ -73,7 +73,9 @@ describe('createMixerBackend', () => {
       containerForItag: expect.any(Function),
     });
     expect(options.format.containerForItag(140)).toBe('mp3');
-    expect(evict).toHaveBeenCalledWith(cacheDir, 100);
+    expect(evict).toHaveBeenCalledWith(cacheDir, 100, [
+      join(cacheDir, 'a.mp3'),
+    ]);
   });
 
   it('keeps the cached track when eviction fails', async () => {
@@ -84,7 +86,9 @@ describe('createMixerBackend', () => {
 
     const result = await backend.cacheTrack('dQw4w9WgXcQ');
 
-    expect(evict).toHaveBeenCalledWith(cacheDir, 100);
+    expect(evict).toHaveBeenCalledWith(cacheDir, 100, [
+      join(cacheDir, 'a.mp3'),
+    ]);
     expect(result).toEqual({
       ok: true,
       track: {

@@ -8,6 +8,17 @@ describe('toCacheErrorCode', () => {
     expect(toCacheErrorCode(new Error('[LOGIN_REQUIRED] sign in'))).toBe(
       'UNPLAYABLE',
     );
+    expect(
+      toCacheErrorCode(new Error('[LOGIN_REQUIRED] Music Premium members only')),
+    ).toBe('UNPLAYABLE');
+  });
+
+  it('maps the bot check to PO_TOKEN', () => {
+    expect(
+      toCacheErrorCode(
+        new Error("[LOGIN_REQUIRED] Sign in to confirm you're not a bot"),
+      ),
+    ).toBe('PO_TOKEN');
   });
 
   it('maps filesystem write errors', () => {

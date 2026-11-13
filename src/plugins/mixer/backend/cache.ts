@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
+import { defaultMixerConfig } from '../types';
+
 export type CacheFile = {
   path: string;
   size: number;
@@ -20,14 +22,30 @@ export const isPathInside = (root: string, candidate: string): boolean => {
   return normalizedCandidate.startsWith(normalizedRoot);
 };
 
+export const clampMaxBytes = (raw: unknown): number => {
+  const value = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(value) && value > 0
+    ? value
+    : defaultMixerConfig.cacheMaxBytes;
+};
+
+const normalizeForCompare = (path: string): string => {
+  const resolved = resolve(path);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+};
+
 export const planEviction = (
   files: CacheFile[],
   maxBytes: number,
+  excludePaths: string[] = [],
 ): CacheFile[] => {
   const total = files.reduce((sum, file) => sum + file.size, 0);
   if (total <= maxBytes) return [];
 
-  const oldestFirst = [...files].sort((a, b) => a.mtimeMs - b.mtimeMs);
+  const excluded = new Set(excludePaths.map(normalizeForCompare));
+  const oldestFirst = [...files]
+    .filter((file) => !excluded.has(normalizeForCompare(file.path)))
+    .sort((a, b) => a.mtimeMs - b.mtimeMs);
   const evicted: CacheFile[] = [];
   let remaining = total;
 
@@ -52,8 +70,12 @@ export const listCacheFiles = (dir: string): CacheFile[] => {
     });
 };
 
-export const evictCache = (dir: string, maxBytes: number): string[] => {
-  const evicted = planEviction(listCacheFiles(dir), maxBytes);
+export const evictCache = (
+  dir: string,
+  maxBytes: number,
+  excludePaths: string[] = [],
+): string[] => {
+  const evicted = planEviction(listCacheFiles(dir), maxBytes, excludePaths);
   for (const file of evicted) rmSync(file.path, { force: true });
   return evicted.map((file) => file.path);
 };
