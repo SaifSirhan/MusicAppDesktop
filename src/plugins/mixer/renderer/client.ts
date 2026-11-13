@@ -1,10 +1,9 @@
-import type { RendererContext } from '@/types/contexts';
-
 import type {
   CacheProgress,
   CacheTrackResult,
   MixerPluginConfig,
 } from '../types';
+import type { RendererContext } from '@/types/contexts';
 
 type MixerIpc = RendererContext<MixerPluginConfig>['ipc'];
 
@@ -22,9 +21,16 @@ export const createMixerClient = (ipc: MixerIpc): MixerClient => ({
     (await ipc.invoke('mixer:read-track', path)) as ArrayBuffer,
 
   onCacheProgress: (listener) => {
-    const handler = (_event: unknown, progress: CacheProgress) =>
-      listener(progress);
+    // RendererContext only exposes channel-wide removal, so the panel owns a
+    // single progress subscription; guard against post-unsubscribe delivery.
+    let active = true;
+    const handler = (_event: unknown, progress: CacheProgress) => {
+      if (active) listener(progress);
+    };
     ipc.on('mixer:cache-progress', handler);
-    return () => ipc.removeAllListeners('mixer:cache-progress');
+    return () => {
+      active = false;
+      ipc.removeAllListeners('mixer:cache-progress');
+    };
   },
 });

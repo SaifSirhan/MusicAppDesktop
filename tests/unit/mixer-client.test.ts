@@ -41,10 +41,18 @@ describe('createMixerClient', () => {
       expect.any(Function),
     );
 
+    const handler = ipc.on.mock.calls[0][1] as (
+      event: unknown,
+      progress: unknown,
+    ) => void;
+
     unsubscribe();
     expect(ipc.removeAllListeners).toHaveBeenCalledWith(
       'mixer:cache-progress',
     );
+
+    handler(undefined, { videoId: 'x', phase: 'downloading', ratio: 0.25 });
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it('forwards progress payloads to the listener', () => {
