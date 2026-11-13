@@ -46,11 +46,19 @@ export const createMixerBackend = (deps: MixerBackendDeps) => {
             containerForItag: () => 'mp3',
           },
           onProgress: (progress) => {
-            sendProgress({ videoId, ...progress } as CacheProgress);
+            try {
+              sendProgress({ videoId, ...progress } as CacheProgress);
+            } catch {
+              // Progress reporting is best-effort; never abort the download.
+            }
           },
         });
 
-        evict(cacheDir, maxBytes);
+        try {
+          evict(cacheDir, maxBytes);
+        } catch {
+          // Eviction is best-effort; the downloaded track is still valid.
+        }
 
         const track: CachedTrackInfo = {
           ...result.metadata,

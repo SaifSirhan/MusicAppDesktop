@@ -72,7 +72,27 @@ describe('createMixerBackend', () => {
       downloadType: 'video+audio',
       containerForItag: expect.any(Function),
     });
+    expect(options.format.containerForItag(140)).toBe('mp3');
     expect(evict).toHaveBeenCalledWith(cacheDir, 100);
+  });
+
+  it('keeps the cached track when eviction fails', async () => {
+    const { backend, cacheDir, evict } = setup();
+    evict.mockImplementationOnce(() => {
+      throw new Error('EBUSY');
+    });
+
+    const result = await backend.cacheTrack('dQw4w9WgXcQ');
+
+    expect(evict).toHaveBeenCalledWith(cacheDir, 100);
+    expect(result).toEqual({
+      ok: true,
+      track: {
+        ...metadata,
+        path: join(cacheDir, 'a.mp3'),
+        extension: 'mp3',
+      },
+    });
   });
 
   it('forwards progress with the video id', async () => {
