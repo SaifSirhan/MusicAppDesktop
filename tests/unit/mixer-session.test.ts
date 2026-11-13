@@ -83,6 +83,26 @@ describe('toQueueItems', () => {
     expect(toQueueItems([])).toEqual([]);
     expect(toQueueItems([null, 42, 'x'] as unknown[])).toEqual([]);
   });
+
+  it('keeps wrapper-only rows through their primary renderer', () => {
+    const items = toQueueItems([
+      {
+        playlistPanelVideoWrapperRenderer: {
+          primaryRenderer: entry('wrapped1', 'Segmented', 'Artist', '4:10'),
+        },
+      },
+    ]);
+
+    expect(items).toEqual([
+      {
+        videoId: 'wrapped1',
+        title: 'Segmented',
+        artist: 'Artist',
+        duration: 250,
+        thumbnail: 'https://img/large.jpg',
+      },
+    ]);
+  });
 });
 
 describe('formatTime', () => {

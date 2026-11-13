@@ -41,8 +41,13 @@ const isSeparator = (text: string): boolean => {
 };
 
 const toItem = (value: unknown): MixerQueueItem | undefined => {
-  const wrapper = asObject(value);
-  const renderer = asObject(wrapper?.playlistPanelVideoRenderer) as
+  const entry = asObject(value);
+  // Segmented videos arrive only as wrapper rows; their primary renderer is
+  // the sole representation of the track in the queue.
+  const primary = asObject(entry?.playlistPanelVideoWrapperRenderer);
+  const source = entry?.playlistPanelVideoRenderer ?? primary?.primaryRenderer;
+  const nested = asObject(source);
+  const renderer = (nested?.playlistPanelVideoRenderer ?? nested) as
     | QueueRenderer
     | undefined;
   const videoId = renderer?.navigationEndpoint?.watchEndpoint?.videoId;
