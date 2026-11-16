@@ -44,6 +44,11 @@ track as a muted clock so its queue, history, progress bar, media keys and likes
   `config.setPartial('plugins.crossfade', { overlap }, crossfadeDefaults)`.
 - `src/plugins/mixer/renderer/index.ts` — dispatch `musicapp:mixer-open` / `musicapp:mixer-close`
   custom events on `window` in `openMixer` / `closeMixer`.
+- `src/plugins/mixer/backend/handlers.ts` + `backend/index.ts` — pinned-path set and
+  `mixer:set-pinned-tracks` IPC for the eviction lock.
+- `src/plugins/mixer/renderer/client.ts` — `setPinnedTracks(paths: string[])`.
+- `src/plugins/mixer/renderer/session.ts` — `loadTrack` returns the cached path (or `undefined`)
+  so the controller can pin what it owns.
 - Plugin config type: `overlap: boolean` default `false`; `crossfadeDefaults` gains the same key.
 
 ### Components
@@ -85,7 +90,8 @@ type OverlapDeps = {
 
 It owns a private `MixerEngine`, created lazily on the first arm, master volume mirrored from
 `video.volume`. Deck loading reuses `loadTrack({ client: cache, decode }, deck, item)`; the decode
-is `engine.context.decodeAudioData(data.slice(0))`; peaks are ignored.
+is `engine.context.decodeAudioData(data.slice(0))`; peaks are ignored. `loadTrack` returns the
+cached path on success so the controller can pin it (see eviction lock).
 
 **Blend maths**
 
@@ -107,9 +113,19 @@ drives the legacy fallback.
   owned): `remaining <= blendSeconds + 45` (download lead).
 - Blend trigger, idle: `video` `timeupdate` with `video.duration - video.currentTime <= blendSeconds`.
 - Blend trigger, owned: 250 ms interval comparing `deck.position()` to `deck.getDuration()`.
-- End of an owned track: deck `ended` subscription; if `playerApi.getVideoData().videoId` is still
-  the owned track, click `.next-button` once. YTM autoplay may win the race; the navigation handler
-  de-duplicates by videoId.
+- Context watchdog (250 ms tick, `blending` and `owned`): if
+  `engine.context.state === 'suspended'`, `await engine.resume()`; if it returns false, abort
+  ownership and unmute YTM. This covers OS sleep and late policy changes that `Deck.play()`'s
+  one-shot resume cannot.
+- Micro-sync (5 s interval, `owned` only, skipped while `video.paused` or the owned deck is not
+  playing): compare `video.currentTime` with `deck.position()`; if the absolute difference exceeds
+  0.5 s, `deck.seek(video.currentTime)` so YTM stays the master clock. Micro-sync never runs while
+  a ramp is active; the per-boundary handoff seek already corrects that window.
+- End of an owned track: deck `ended` subscription. Advance YTM only when **both** guards pass:
+  (a) debounce — at least 300 ms since the controller's last advance click; (b) `videoId` guard —
+  `playerApi.getVideoData().videoId` still equals the owned track at click time. YTM autoplay may
+  win the race; the navigation handler de-duplicates by videoId, and the guards prevent skipping
+  two tracks.
 
 **Navigation handoff** (`window.navigation` `navigate`)
 
@@ -157,6 +173,23 @@ While overlap is active, the legacy `timeupdate` fade handler returns early (`is
 so the two never manipulate `video.volume` at once. YTM advancement in owned mode is handled by the
 controller (`.next-button` click guarded by videoId); autoplay's own advance is de-duplicated.
 
+## Cache eviction lock
+
+The mixer cache may never evict a file the overlap controller is using.
+
+- `createMixerBackend` keeps a `pinnedPaths: string[]` set filled by the new
+  `mixer:set-pinned-tracks` IPC. The handler accepts a string array, drops entries that are not
+  strings or fail `isPathInside(cacheDir, path)`, de-duplicates, and replaces the set.
+- `cacheTrack` passes `[result.path, ...pinnedPaths]` as the eviction exclusion list, so both the
+  just-cached file and every pinned file survive an eviction pass. Startup eviction runs before any
+  pin exists and needs no change.
+- The controller pins `[ownedPath, incomingPath]` (whichever exist): after the first incoming load,
+  after every chained incoming load, and it keeps the outgoing path pinned through the blend so the
+  same file is not evicted while still audible. On abort, teardown, mixer open, plugin disable, or
+  stop it calls `setPinnedTracks([])`.
+- The mixer panel's own manual decks are not pinned by this feature (pre-existing behavior,
+  unchanged).
+
 ## Settings and config
 
 - Config: `plugins.crossfade.overlap: boolean` (default `false`). Read on every arm.
@@ -183,7 +216,12 @@ plugin stop. This mirrors the existing `__mixer` hook for CDP verification.
   paused/playbackRate`), fake playerApi (`getVideoData`, `getPlayerState`, `seekTo`, `setVolume`),
   fake cache; real `Deck` + `FakeContext`. Asserts: deck loads the next item and starts at blend
   time; gains follow `crossfaderGains`; pause cancels and restores volume; navigation seeks YTM to
-  the deck position and mutes; cache failure leaves YTM audible and emits no deck play.
+  the deck position and mutes; cache failure leaves YTM audible and emits no deck play; the 5 s
+  micro-sync seeks the deck only past 0.5 s drift; the 300 ms debounce plus videoId guard makes at
+  most one `.next-button` click; pinned paths mirror the owned/incoming files and clear on abort.
+- Mixer backend tests: `mixer:set-pinned-tracks` rejects paths outside the cache dir, and
+  `cacheTrack` passes the pinned paths next to the freshly cached file in the eviction exclusion
+  list.
 
 **Live (CDP on the installed build)**
 
@@ -211,7 +249,8 @@ plugin stop. This mirrors the existing `__mixer` hook for CDP verification.
 2. YTM shows the correct track, playing, with a working progress bar, and `video.muted` is true
    while a deck owns audio.
 3. Pause, play, seek, volume and Next behave as described; no state leaves YTM muted after the
-   plugin is disabled or the mixer opens.
+   plugin is disabled or the mixer opens; a paused context is resumed while owning, and owning
+   or incoming files survive an eviction pass.
 4. Any cache/decode failure falls back to the current fade-out → skip → fade-in with no silent
-   gap and no stuck deck.
+   gap and no stuck deck; the advance guard never skips two tracks.
 5. Unit suites pass; `pnpm typecheck`, `pnpm build` and lint are clean; live CDP evidence recorded.
