@@ -424,7 +424,11 @@
     },
     "mixer": {
       "description": "Two-deck DJ mixer with a crossfader",
-      "name": "Mixer"
+      "name": "Mixer",
+      "panel": {
+        "close": "Close mixer"
+      },
+      "title": "Mixer"
     },
     "crossfade": {
       "description": "Crossfade between songs",

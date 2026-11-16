@@ -9,6 +9,7 @@ import {
 } from 'solid-js';
 import { css } from 'solid-styled-components';
 
+import { t } from '@/i18n';
 import { cacheNoArgs } from '@/providers/decorators';
 
 import { DeckCard } from './DeckCard';
@@ -365,6 +366,19 @@ const deckChipStyle: () => string = cacheNoArgs(
   `,
 );
 
+const noticeStyle: () => string = cacheNoArgs(
+  () => css`
+    margin: 0;
+    padding: 8px 12px;
+
+    border-radius: 8px;
+    background-color: rgba(255, 212, 121, 0.12);
+
+    font-size: 12px;
+    color: #ffd479;
+  `,
+);
+
 const emptyStyle: () => string = cacheNoArgs(
   () => css`
     margin: 8px 0;
@@ -403,6 +417,7 @@ const clampVolume = (value: number): number =>
   Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 1;
 
 type MixerPanelProps = {
+  audioBlocked?: boolean;
   client: Pick<MixerClient, 'cacheTrack' | 'onCacheProgress' | 'readTrack'>;
   engine: MixerEngine;
   items: MixerQueueItem[];
@@ -526,7 +541,7 @@ export const MixerPanel = (props: MixerPanelProps) => {
 
   return (
     <div
-      aria-label="Mixer"
+      aria-label="Mixer panel"
       aria-modal="true"
       class={overlayStyle()}
       ref={setRoot}
@@ -535,9 +550,9 @@ export const MixerPanel = (props: MixerPanelProps) => {
     >
       <div class={contentStyle()}>
         <header class={headerStyle()}>
-          <h2 class={titleStyle()}>Mixer</h2>
+          <h2 class={titleStyle()}>{t('plugins.mixer.title')}</h2>
           <button
-            aria-label="Close mixer"
+            aria-label={t('plugins.mixer.panel.close')}
             class={closeButtonStyle()}
             onClick={() => props.onClose()}
             type="button"
@@ -545,6 +560,11 @@ export const MixerPanel = (props: MixerPanelProps) => {
             <CloseIcon />
           </button>
         </header>
+        <Show when={props.audioBlocked}>
+          <p aria-live="polite" class={noticeStyle()}>
+            Click play to start audio.
+          </p>
+        </Show>
         <div class={decksStyle()}>
           <DeckCard
             deck={props.engine.decks.A}
