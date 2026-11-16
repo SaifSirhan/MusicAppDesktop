@@ -46,6 +46,8 @@ export type OverlapSnapshot = {
 const MIN_BLEND_SECONDS = 1;
 const ADVANCE_DEBOUNCE_MS = 300;
 const ARM_LEAD_SECONDS = 45;
+const HANDOFF_SETTLE_MS = 5000;
+const CLOCK_PUSH_INTERVAL_MS = 1000;
 
 export type OverlapController = ReturnType<typeof createOverlapController>;
 
@@ -73,6 +75,8 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
   let arming = false;
   let suspended = false;
   let lastAdvanceAt = -Infinity;
+  let handoffAt = -Infinity;
+  let lastClockPushAt = -Infinity;
   let loadedPaths: Partial<Record<OverlapDeckId, string>> = {};
   let failedTrackId: string | null = null;
   const detachers: Array<() => void> = [];
@@ -177,6 +181,10 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
 
     if (result.effects.includes('start-ramp')) {
       startRamp(previous.phase === 'owned' ? previous.activeDeck : null);
+    }
+
+    if (event.type === 'navigation' && result.state.phase === 'owned') {
+      handoffAt = now();
     }
   };
 
@@ -345,6 +353,27 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
       return;
     }
 
+    if (machine.phase === 'owned' && machine.activeDeck) {
+      // YTM restores its own muted flag when the handoff video starts; the
+      // deck owns the audio, so keep the clock silent.
+      if (!video.muted) video.muted = true;
+
+      const active = deck(machine.activeDeck);
+      const drift = active ? video.currentTime - active.position() : 0;
+      if (active && !video.paused && Math.abs(drift) > 0.5) {
+        if (now() - handoffAt < HANDOFF_SETTLE_MS) {
+          // The new video loads at 0 and ignores the seek we send during the
+          // navigation event; push the clock until it takes.
+          if (now() - lastClockPushAt >= CLOCK_PUSH_INTERVAL_MS) {
+            lastClockPushAt = now();
+            playerApi.seekTo(active.position());
+          }
+        } else {
+          active.seek(video.currentTime);
+        }
+      }
+    }
+
     const windowSeconds = blendSeconds();
     if (windowSeconds <= 0) return;
 
@@ -394,6 +423,10 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
     if (!video) return;
 
     if (machine.phase === 'owned') {
+      // The handoff video fires a seek to 0 while loading; that is not a user
+      // seek, and following it would drag the deck back to the start.
+      if (now() - handoffAt < 2000 && video.currentTime < 2) return;
+
       if (machine.activeDeck) deck(machine.activeDeck)?.seek(video.currentTime);
       return;
     }
@@ -452,6 +485,7 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
   const microSync = () => {
     if (!video || !engine || machine.phase !== 'owned' || video.paused) return;
     if (!machine.activeDeck) return;
+    if (now() - handoffAt < HANDOFF_SETTLE_MS) return;
 
     const active = deck(machine.activeDeck);
     if (!active || active.getCore().status !== 'playing') return;

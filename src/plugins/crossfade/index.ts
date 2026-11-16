@@ -29,6 +29,10 @@ export default createPlugin<
   {
     config?: CrossfadePluginConfig;
     overlap?: OverlapController | null;
+    overlapStarted?: boolean;
+    playerVideo?: HTMLVideoElement | null;
+    playerApi?: MusicPlayer | null;
+    attachOverlap: () => void;
   },
   CrossfadePluginConfig
 >({
@@ -66,6 +70,20 @@ export default createPlugin<
   },
   renderer: {
     overlap: null as OverlapController | null,
+    overlapStarted: false,
+    playerVideo: null as HTMLVideoElement | null,
+    playerApi: null as MusicPlayer | null,
+
+    attachOverlap() {
+      if (!this.config?.overlap || this.overlapStarted) return;
+      if (!this.playerVideo || !this.playerApi) return;
+
+      this.overlapStarted = true;
+      this.overlap?.start(this.playerVideo, this.playerApi);
+      (window as unknown as { __overlap?: unknown }).__overlap = {
+        snapshot: () => this.overlap?.snapshot(),
+      };
+    },
 
     async start(context) {
       this.config = await context.getConfig();
@@ -83,26 +101,29 @@ export default createPlugin<
         },
         getConfig: () => this.config!,
       });
+      // onPlayerApiReady may have fired while getConfig() was still pending.
+      this.attachOverlap();
     },
     stop() {
       this.overlap?.stop();
       this.overlap = null;
+      this.overlapStarted = false;
+      this.playerVideo = null;
+      this.playerApi = null;
       delete (window as { __overlap?: unknown }).__overlap;
     },
     onConfigChange(newConfig) {
       this.config = newConfig;
       this.overlap?.updateConfig(newConfig);
+      this.attachOverlap();
     },
     onPlayerApiReady(playerApi: MusicPlayer) {
       const video = document.querySelector('video');
       if (!video) return;
 
-      if (this.config?.overlap) {
-        this.overlap?.start(video, playerApi);
-        (window as unknown as { __overlap?: unknown }).__overlap = {
-          snapshot: () => this.overlap?.snapshot(),
-        };
-      }
+      this.playerVideo = video;
+      this.playerApi = playerApi;
+      this.attachOverlap();
 
       let targetVolume = video.volume || 1;
       let fadingOutFor: string | undefined;

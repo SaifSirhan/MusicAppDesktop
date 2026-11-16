@@ -262,6 +262,38 @@ describe('OverlapController', () => {
     expect(controller.snapshot().state).toBe('owned');
   });
 
+  it('keeps YTM muted when the player restores its own flag', async () => {
+    const { controller, element, setPlayerVideoId } = setup();
+    element.currentTime = 150;
+    await controller.tickForTest();
+    element.currentTime = 175;
+    await controller.tickForTest();
+    setPlayerVideoId('two');
+    controller.navigateForTest('two');
+
+    element.muted = false;
+    await controller.tickForTest();
+
+    expect(element.muted).toBe(true);
+    expect(controller.snapshot().state).toBe('owned');
+  });
+
+  it('pushes the clock to the deck while the handoff video settles', async () => {
+    const { controller, element, playerApi, setPlayerVideoId } = setup();
+    element.currentTime = 150;
+    await controller.tickForTest();
+    element.currentTime = 175;
+    await controller.tickForTest();
+    setPlayerVideoId('two');
+    controller.navigateForTest('two');
+
+    element.currentTime = 30;
+    await controller.tickForTest();
+
+    expect(playerApi.seekTo).toHaveBeenCalled();
+    expect(playerApi.seekTo.mock.calls.at(-1)?.[0]).toBeCloseTo(0, 0);
+  });
+
   it('mirrors a volume change into the engine while owned', async () => {
     const { controller, element, setPlayerVideoId } = setup();
     element.currentTime = 150;
