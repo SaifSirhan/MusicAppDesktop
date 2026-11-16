@@ -2,6 +2,8 @@ import type { CacheProgress, MixerErrorCode } from '../types';
 import type { MixerClient } from './client';
 import type { Deck } from './engine';
 
+export type { CacheProgress, MixerClient };
+
 export type MixerQueueItem = {
   videoId: string;
   title: string;
