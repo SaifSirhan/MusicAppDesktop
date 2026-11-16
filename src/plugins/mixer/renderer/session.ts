@@ -193,3 +193,30 @@ export const loadTrack = async (
     report(null);
   }
 };
+
+type ProgressIpc = {
+  on: (event: string, listener: (progress: CacheProgress) => void) => void;
+  removeAllListeners: (event: string) => void;
+};
+
+const isCacheProgress = (value: unknown): value is CacheProgress =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { videoId?: unknown }).videoId === 'string';
+
+export const subscribeProgress = (
+  ipc: ProgressIpc,
+  handler: (progress: CacheProgress) => void,
+): (() => void) => {
+  let active = true;
+  ipc.on('mixer:cache-progress', (progress) => {
+    if (!active || !isCacheProgress(progress)) return;
+
+    handler(progress);
+  });
+
+  return () => {
+    active = false;
+    ipc.removeAllListeners('mixer:cache-progress');
+  };
+};
