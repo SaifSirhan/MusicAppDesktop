@@ -47,6 +47,8 @@ const MIN_BLEND_SECONDS = 1;
 const ADVANCE_DEBOUNCE_MS = 300;
 const ARM_LEAD_SECONDS = 45;
 
+export type OverlapController = ReturnType<typeof createOverlapController>;
+
 export const createOverlapController = (options: OverlapControllerOptions) => {
   const now = options.now ?? (() => performance.now());
   const requestFrame =

@@ -2,7 +2,14 @@ import { t } from '@/i18n';
 import { createPlugin } from '@/utils';
 
 import { VolumeFader } from './fader';
-import { setCrossfading } from './state';
+import { createOverlapController, type OverlapController } from './overlap';
+import { isOverlapActive, setCrossfading } from './state';
+
+import { createMixerClient } from '../mixer/renderer/client';
+import { toQueueItems } from '../mixer/renderer/session';
+
+import type { MusicPlayer } from '@/types/music-player';
+import type { QueueElement } from '@/types/queue';
 
 export type CrossfadePluginConfig = {
   enabled: boolean;
@@ -10,6 +17,8 @@ export type CrossfadePluginConfig = {
   fadeOutDuration: number;
   secondsBeforeEnd: number;
   fadeScaling: 'linear' | 'logarithmic' | number;
+  /** Blend the next cached queue track under the current one. */
+  overlap: boolean;
 };
 
 const MIN_FADE_DURATION = 200;
@@ -19,6 +28,7 @@ export default createPlugin<
   unknown,
   {
     config?: CrossfadePluginConfig;
+    overlap?: OverlapController | null;
   },
   CrossfadePluginConfig
 >({
@@ -52,17 +62,47 @@ export default createPlugin<
      * @default 'linear'
      */
     fadeScaling: 'linear',
+    overlap: false,
   },
   renderer: {
-    async start({ getConfig }) {
-      this.config = await getConfig();
+    overlap: null as OverlapController | null,
+
+    async start(context) {
+      this.config = await context.getConfig();
+      this.overlap = createOverlapController({
+        client: createMixerClient(context.ipc),
+        readQueue: () => {
+          const queue = document.querySelector<QueueElement>('#queue');
+          if (!queue) return [];
+
+          try {
+            return toQueueItems(queue.queue.getItems());
+          } catch {
+            return [];
+          }
+        },
+        getConfig: () => this.config!,
+      });
+    },
+    stop() {
+      this.overlap?.stop();
+      this.overlap = null;
+      delete (window as { __overlap?: unknown }).__overlap;
     },
     onConfigChange(newConfig) {
       this.config = newConfig;
+      this.overlap?.updateConfig(newConfig);
     },
-    onPlayerApiReady() {
+    onPlayerApiReady(playerApi: MusicPlayer) {
       const video = document.querySelector('video');
       if (!video) return;
+
+      if (this.config?.overlap) {
+        this.overlap?.start(video, playerApi);
+        (window as unknown as { __overlap?: unknown }).__overlap = {
+          snapshot: () => this.overlap?.snapshot(),
+        };
+      }
 
       let targetVolume = video.volume || 1;
       let fadingOutFor: string | undefined;
@@ -87,6 +127,8 @@ export default createPlugin<
       // track now, so a second overlapping stream cannot be loaded. Transition
       // by fading the current track out, skipping, then fading the next in.
       const fadeIn = () => {
+        if (isOverlapActive()) return;
+
         const volume = Math.max(0.01, targetVolume);
         video.volume = 0;
         setCrossfading(true);
@@ -108,6 +150,8 @@ export default createPlugin<
       });
 
       video.addEventListener('timeupdate', () => {
+        if (isOverlapActive()) return;
+
         const secondsBeforeEnd = this.config?.secondsBeforeEnd ?? 0;
         if (!video.duration || video.paused || secondsBeforeEnd <= 0) return;
 
