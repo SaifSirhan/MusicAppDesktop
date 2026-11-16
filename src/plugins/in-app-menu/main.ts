@@ -114,8 +114,12 @@ export const onMainLoad = ({
     fadeInDuration: 1500,
     fadeOutDuration: 5000,
     fadeScaling: 'linear',
+    overlap: false,
   };
-  type CrossfadeSettings = { secondsBeforeEnd?: number };
+  type CrossfadeSettings = {
+    secondsBeforeEnd?: number;
+    overlap?: boolean;
+  };
   const crossfadeConfig = (): CrossfadeSettings =>
     (config.get('plugins.crossfade') ?? {}) as CrossfadeSettings;
 
@@ -211,6 +215,7 @@ export const onMainLoad = ({
         'plugins.discovery.lastfmApiKey': discoveryConfig().lastfmApiKey ?? '',
         'plugins.crossfade.transitionSeconds':
           crossfadeConfig().secondsBeforeEnd ?? 10,
+        'plugins.crossfade.overlap': crossfadeConfig().overlap ?? false,
       },
       languages,
     };
@@ -277,6 +282,14 @@ export const onMainLoad = ({
             fadeInDuration: seconds * 1000,
             fadeOutDuration: seconds * 1000,
           },
+          crossfadeDefaults,
+        );
+        return;
+      }
+      case 'plugins.crossfade.overlap': {
+        config.setPartial(
+          'plugins.crossfade',
+          { overlap: Boolean(value) },
           crossfadeDefaults,
         );
         return;

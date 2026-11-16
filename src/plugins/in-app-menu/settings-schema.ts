@@ -190,6 +190,14 @@ export const settingsSections: SettingSection[] = [
         apply: 'live',
         stops: [0, 5, 10, 20, 30, 50],
       },
+      {
+        kind: 'switch',
+        key: 'plugins.crossfade.overlap',
+        label: 'Real overlap',
+        description:
+          'Blend the next track under the current one when it is cached. Requires the Mixer plugin.',
+        apply: 'live',
+      },
     ],
   },
   {
