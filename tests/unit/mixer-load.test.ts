@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { errorCopy, loadTrack } from '../../src/plugins/mixer/renderer/session';
-import { Deck } from '../../src/plugins/mixer/renderer/engine';
 import { fakeBuffer, FakeContext, FakeGain } from './fake-audio';
 
-import type { MixerQueueItem } from '../../src/plugins/mixer/renderer/session';
+import { Deck } from '../../src/plugins/mixer/renderer/engine';
+import {
+  errorCopy,
+  loadTrack,
+  type MixerQueueItem,
+} from '../../src/plugins/mixer/renderer/session';
 
 const item: MixerQueueItem = {
   videoId: 'dQw4w9WgXcQ',
@@ -20,12 +23,14 @@ const setup = () => {
     new FakeGain() as unknown as AudioNode,
     'A',
   );
-  const readTrack = vi.fn(async () => new ArrayBuffer(4));
-  const cacheTrack = vi.fn(async () => ({
-    ok: true as const,
-    track: { ...item, path: 'C:/cache/song.mp3', extension: 'mp3' },
-  }));
-  const decode = vi.fn(async () => fakeBuffer(200));
+  const readTrack = vi.fn(() => Promise.resolve(new ArrayBuffer(4)));
+  const cacheTrack = vi.fn(() =>
+    Promise.resolve({
+      ok: true as const,
+      track: { ...item, path: 'C:/cache/song.mp3', extension: 'mp3' },
+    }),
+  );
+  const decode = vi.fn(() => Promise.resolve(fakeBuffer(200)));
   const progress: unknown[] = [];
 
   return {
@@ -59,28 +64,26 @@ describe('loadTrack', () => {
     expect(deps.onProgress).toBeTypeOf('function');
   });
 
-  it('forwards cache progress and clears it when finished', async () => {
-    const { deck, deps, progress, cacheTrack } = setup();
-    cacheTrack.mockImplementationOnce(async (videoId: string) => {
-      deps.onProgress?.({
-        videoId,
-        phase: 'downloading',
-        ratio: 0.4,
-      } as never);
-
-      return {
-        ok: true as const,
-        track: { ...item, path: 'p', extension: 'mp3' },
-      };
-    });
-    // Progress reaches loadTrack through the client's onCacheProgress
-    // subscription (loadTrack does not wire it), so it is fed via the sink here.
-    deps.onProgress?.({ videoId: item.videoId, phase: 'downloading', ratio: 0.4 });
+  it('clears the progress sink at the start and end of a load', async () => {
+    const { deck, deps, progress } = setup();
 
     await loadTrack(deps as never, deck, item);
 
-    expect(progress[0]).toMatchObject({ phase: 'downloading', ratio: 0.4 });
+    // Real download progress arrives through client.onCacheProgress (the
+    // panel subscribes); loadTrack only brackets the load with null markers.
+    expect(progress[0]).toBeNull();
     expect(progress.at(-1)).toBeNull();
+    expect(deck.getCore().status).toBe('ready');
+  });
+
+  it('reports read failures with the cache copy', async () => {
+    const { deck, deps, readTrack } = setup();
+    readTrack.mockRejectedValueOnce(new Error('ENOENT'));
+
+    await loadTrack(deps as never, deck, item);
+
+    expect(deck.getCore().status).toBe('error');
+    expect(deck.getCore().error).toBe(errorCopy.NETWORK);
   });
 
   it('maps cache failures to user copy', async () => {

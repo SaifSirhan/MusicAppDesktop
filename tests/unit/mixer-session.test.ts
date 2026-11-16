@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatTime,
+  progressLabel,
   toQueueItems,
 } from '../../src/plugins/mixer/renderer/session';
 
@@ -117,5 +118,36 @@ describe('formatTime', () => {
     expect(formatTime(-5)).toBe('0:00');
     expect(formatTime(Number.NaN)).toBe('0:00');
     expect(formatTime(59.9)).toBe('0:59');
+  });
+});
+
+describe('progressLabel', () => {
+  it('renders each cache phase', () => {
+    expect(
+      progressLabel({
+        videoId: 'x',
+        phase: 'resolved',
+        metadata: {
+          videoId: 'x',
+          title: 'Song',
+          artist: 'Artist',
+          duration: 1,
+        },
+      }),
+    ).toBe('Found Song');
+    expect(
+      progressLabel({ videoId: 'x', phase: 'downloading', ratio: 0.424 }),
+    ).toBe('Downloading 42%');
+    expect(progressLabel({ videoId: 'x', phase: 'converting', ratio: 0.5 })).toBe(
+      'Converting 50%',
+    );
+    expect(progressLabel({ videoId: 'x', phase: 'loading' })).toBe(
+      'Loading from YouTube…',
+    );
+    expect(progressLabel({ videoId: 'x', phase: 'preparing' })).toBe(
+      'Preparing audio…',
+    );
+    expect(progressLabel({ videoId: 'x', phase: 'saving' })).toBe('Saving…');
+    expect(progressLabel({ videoId: 'x', phase: 'tagging' })).toBe('Tagging…');
   });
 });

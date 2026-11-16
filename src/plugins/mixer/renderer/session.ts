@@ -169,17 +169,26 @@ export const loadTrack = async (
 
     const result = await deps.client.cacheTrack(item.videoId);
     if (!result.ok) {
-      fail(errorCopy[result.code] ?? errorCopy.NETWORK);
+      fail(errorCopy[result.code]);
 
       return;
     }
 
     const data = await deps.client.readTrack(result.track.path);
-    const buffer = await deps.decode(data);
+
+    let buffer: AudioBuffer;
+    try {
+      buffer = await deps.decode(data);
+    } catch {
+      fail(DECODE_ERROR);
+
+      return;
+    }
 
     if (isCurrent()) deck.load(buffer, token);
   } catch {
-    fail(DECODE_ERROR);
+    // Cache or file-read failure: the track never reached the decoder.
+    fail(errorCopy.NETWORK);
   } finally {
     report(null);
   }
