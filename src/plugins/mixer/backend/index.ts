@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { app } from 'electron';
@@ -25,6 +25,7 @@ export const onMainLoad = ({
     getMaxBytes,
     fetchTrack: (options) => fetchTrack(win, options),
     readFile,
+    removeFile: unlink,
     evict: evictCache,
     sendProgress: (progress) => ipc.send('mixer:cache-progress', progress),
   });
@@ -33,6 +34,7 @@ export const onMainLoad = ({
     backend.cacheTrack(videoId),
   );
   ipc.handle('mixer:read-track', (path: unknown) => backend.readTrack(path));
+  ipc.handle('mixer:remove-track', (path: unknown) => backend.removeTrack(path));
 
   // Spec §8: the cache is evicted at startup as well as after each cache.
   // Non-blocking and never throws: startup eviction is best-effort.

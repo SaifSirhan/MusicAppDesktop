@@ -137,7 +137,7 @@ export const progressLabel = (progress: CacheProgress): string => {
 };
 
 export type LoadDeps = {
-  client: Pick<MixerClient, 'cacheTrack' | 'readTrack'>;
+  client: Pick<MixerClient, 'cacheTrack' | 'readTrack' | 'removeTrack'>;
   decode: (data: ArrayBuffer) => Promise<AudioBuffer>;
   onProgress?: (progress: CacheProgress | null) => void;
 };
@@ -182,6 +182,9 @@ export const loadTrack = async (
     try {
       buffer = await deps.decode(data);
     } catch {
+      // A short download converts into bytes the decoder rejects; keeping the
+      // file would make every retry fail on the same content.
+      deps.client.removeTrack(result.track.path).catch(() => {});
       fail(DECODE_ERROR);
 
       return;

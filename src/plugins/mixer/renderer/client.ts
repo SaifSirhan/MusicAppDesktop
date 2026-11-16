@@ -10,6 +10,7 @@ type MixerIpc = RendererContext<MixerPluginConfig>['ipc'];
 export type MixerClient = {
   cacheTrack: (videoId: string) => Promise<CacheTrackResult>;
   readTrack: (path: string) => Promise<ArrayBuffer>;
+  removeTrack: (path: string) => Promise<void>;
   onCacheProgress: (listener: (progress: CacheProgress) => void) => () => void;
 };
 
@@ -19,6 +20,10 @@ export const createMixerClient = (ipc: MixerIpc): MixerClient => ({
 
   readTrack: async (path) =>
     (await ipc.invoke('mixer:read-track', path)) as ArrayBuffer,
+
+  removeTrack: async (path) => {
+    await ipc.invoke('mixer:remove-track', path);
+  },
 
   onCacheProgress: (listener) => {
     // RendererContext.ipc.on strips the Electron event and forwards only the

@@ -31,16 +31,18 @@ const setup = () => {
     }),
   );
   const decode = vi.fn(() => Promise.resolve(fakeBuffer(200)));
+  const removeTrack = vi.fn(() => Promise.resolve());
   const progress: unknown[] = [];
 
   return {
     deck,
     cacheTrack,
     readTrack,
+    removeTrack,
     decode,
     progress,
     deps: {
-      client: { cacheTrack, readTrack },
+      client: { cacheTrack, readTrack, removeTrack },
       decode,
       onProgress: (value: unknown) => progress.push(value),
     },
@@ -49,13 +51,14 @@ const setup = () => {
 
 describe('loadTrack', () => {
   it('caches, reads, decodes and installs the buffer', async () => {
-    const { deck, deps, cacheTrack, readTrack, decode } = setup();
+    const { deck, deps, cacheTrack, readTrack, removeTrack, decode } = setup();
 
     await loadTrack(deps as never, deck, item);
 
     expect(cacheTrack).toHaveBeenCalledWith('dQw4w9WgXcQ');
     expect(readTrack).toHaveBeenCalledWith('C:/cache/song.mp3');
     expect(decode).toHaveBeenCalled();
+    expect(removeTrack).not.toHaveBeenCalled();
     expect(deck.getCore()).toEqual({
       status: 'ready',
       duration: 200,
@@ -108,6 +111,17 @@ describe('loadTrack', () => {
     expect(deck.getCore().error).toBe(
       'Could not decode this track. Try another one.',
     );
+  });
+
+  it('invalidates the cached file when decode fails', async () => {
+    const { deck, deps, decode, removeTrack } = setup();
+    decode.mockRejectedValueOnce(new Error('EncodingError'));
+
+    await loadTrack(deps as never, deck, item);
+
+    // A short download converts into an undecodable file; leaving it cached
+    // would make every retry fail on the same bytes.
+    expect(removeTrack).toHaveBeenCalledWith('C:/cache/song.mp3');
   });
 
   it('never overwrites a load that started later', async () => {

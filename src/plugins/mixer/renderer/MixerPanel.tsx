@@ -418,7 +418,10 @@ const clampVolume = (value: number): number =>
 
 type MixerPanelProps = {
   audioBlocked?: boolean;
-  client: Pick<MixerClient, 'cacheTrack' | 'onCacheProgress' | 'readTrack'>;
+  client: Pick<
+    MixerClient,
+    'cacheTrack' | 'onCacheProgress' | 'readTrack' | 'removeTrack'
+  >;
   engine: MixerEngine;
   items: MixerQueueItem[];
   onClose: () => void;

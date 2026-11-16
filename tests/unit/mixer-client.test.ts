@@ -45,6 +45,16 @@ describe('createMixerClient', () => {
     );
   });
 
+  it('invokes the remove channel with the path', async () => {
+    const { ipc } = fakeIpc();
+    const client = createMixerClient(ipc as never);
+    await client.removeTrack('/tmp/mixer-cache/a.mp3');
+    expect(ipc.invoke).toHaveBeenCalledWith(
+      'mixer:remove-track',
+      '/tmp/mixer-cache/a.mp3',
+    );
+  });
+
   it('subscribes and unsubscribes from progress events', () => {
     const { ipc, emit } = fakeIpc();
     const client = createMixerClient(ipc as never);

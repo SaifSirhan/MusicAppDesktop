@@ -23,6 +23,8 @@ import {
 import { getNetFetchAsFetch } from '@/plugins/utils/main';
 import { cleanupName, getImage } from '@/providers/song-info';
 
+import { downloadChunks } from './download-chunks';
+
 export type TrackMetadata = {
   videoId: string;
   title: string;
@@ -200,22 +202,6 @@ const getAndroidTvInfo = async (id: string): Promise<YT.VideoInfo> => {
   return await innertube.getBasicInfo(id, {
     client: 'TV_EMBEDDED',
   });
-};
-
-const downloadChunks = async (
-  stream: AsyncGenerator<Uint8Array, void>,
-  contentLength: number,
-  onProgress: (progress: TrackProgress) => void,
-) => {
-  const chunks = [];
-  let downloaded = 0;
-  for await (const chunk of stream) {
-    downloaded += chunk.length;
-    chunks.push(chunk);
-    const ratio = contentLength > 0 ? downloaded / contentLength : 0;
-    onProgress({ phase: 'downloading', ratio });
-  }
-  return chunks;
 };
 
 const iterableStreamToProcessedUint8Array = async (

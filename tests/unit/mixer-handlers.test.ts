@@ -25,16 +25,26 @@ const setup = () => {
     skipped: false,
   }));
   const readFile = vi.fn(async () => Buffer.from('abc'));
+  const removeFile = vi.fn(async () => {});
   const evict = vi.fn(() => []);
   const backend = createMixerBackend({
     cacheDir,
     getMaxBytes: async () => 100,
     fetchTrack,
     readFile,
+    removeFile,
     evict,
     sendProgress: (progress) => sent.push(progress),
   });
-  return { backend, cacheDir, fetchTrack, readFile, evict, sent };
+  return {
+    backend,
+    cacheDir,
+    fetchTrack,
+    readFile,
+    removeFile,
+    evict,
+    sent,
+  };
 };
 
 describe('createMixerBackend', () => {
@@ -141,5 +151,31 @@ describe('createMixerBackend', () => {
     await expect(
       backend.readTrack(join('tmp', 'other', 'secret.mp3')),
     ).rejects.toThrow('Refusing to read outside the mixer cache');
+  });
+
+  it('removes a cached file inside the cache dir', async () => {
+    const { backend, cacheDir, removeFile } = setup();
+
+    await backend.removeTrack(join(cacheDir, 'a.mp3'));
+
+    expect(removeFile).toHaveBeenCalledWith(join(cacheDir, 'a.mp3'));
+  });
+
+  it('refuses removals outside the cache dir', async () => {
+    const { backend, removeFile } = setup();
+
+    await expect(
+      backend.removeTrack(join('tmp', 'other', 'secret.mp3')),
+    ).rejects.toThrow('Refusing to remove outside the mixer cache');
+    expect(removeFile).not.toHaveBeenCalled();
+  });
+
+  it('keeps removal best-effort when the file is gone or locked', async () => {
+    const { backend, cacheDir, removeFile } = setup();
+    removeFile.mockRejectedValueOnce(new Error('EBUSY'));
+
+    await expect(
+      backend.removeTrack(join(cacheDir, 'a.mp3')),
+    ).resolves.toBeUndefined();
   });
 });

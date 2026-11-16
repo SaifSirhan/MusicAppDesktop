@@ -15,13 +15,21 @@ export type MixerBackendDeps = {
   getMaxBytes: () => Promise<number>;
   fetchTrack: (options: FetchTrackOptions) => Promise<CachedTrack>;
   readFile: (path: string) => Promise<Buffer>;
+  removeFile: (path: string) => Promise<void>;
   evict: (dir: string, maxBytes: number, excludePaths?: string[]) => string[];
   sendProgress: (progress: CacheProgress) => void;
 };
 
 export const createMixerBackend = (deps: MixerBackendDeps) => {
-  const { cacheDir, getMaxBytes, fetchTrack, readFile, evict, sendProgress } =
-    deps;
+  const {
+    cacheDir,
+    getMaxBytes,
+    fetchTrack,
+    readFile,
+    removeFile,
+    evict,
+    sendProgress,
+  } = deps;
 
   return {
     async cacheTrack(videoId: unknown): Promise<CacheTrackResult> {
@@ -88,6 +96,19 @@ export const createMixerBackend = (deps: MixerBackendDeps) => {
         buffer.byteOffset,
         buffer.byteOffset + buffer.byteLength,
       ) as ArrayBuffer;
+    },
+
+    async removeTrack(path: unknown): Promise<void> {
+      if (typeof path !== 'string' || !isPathInside(cacheDir, path)) {
+        throw new Error('Refusing to remove outside the mixer cache');
+      }
+
+      try {
+        await removeFile(path);
+      } catch {
+        // Best-effort: a file that is already gone or held by another reader
+        // must not fail the caller's load.
+      }
     },
   };
 };
