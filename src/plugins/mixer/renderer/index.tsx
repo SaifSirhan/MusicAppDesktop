@@ -56,6 +56,7 @@ const restoreVideo = () => {
 export const openMixer = async (): Promise<void> => {
   if (engine || opening || !context) return;
 
+  window.dispatchEvent(new CustomEvent('musicapp:mixer-open'));
   opening = true;
   let next: MixerEngine | undefined;
 
@@ -127,6 +128,8 @@ export const closeMixer = async (): Promise<void> => {
   } catch (error) {
     console.error('[mixer] failed to close the audio engine', error);
   }
+
+  window.dispatchEvent(new CustomEvent('musicapp:mixer-close'));
 };
 
 export const toggleMixer = (): void => {
