@@ -233,6 +233,35 @@ describe('OverlapController', () => {
     expect(element.muted).toBe(false);
   });
 
+  it('ignores the pause YTM emits as the track ends during a blend', async () => {
+    const { controller, element } = setup();
+    element.currentTime = 150;
+    await controller.tickForTest();
+    element.currentTime = 175;
+    await controller.tickForTest();
+    expect(controller.snapshot().state).toBe('blending');
+
+    element.currentTime = 200;
+    element.paused = true;
+    element.emit('pause');
+
+    expect(controller.snapshot().state).toBe('blending');
+  });
+
+  it('keeps ownership when YTM reports play while the deck is playing', async () => {
+    const { controller, element, setPlayerVideoId } = setup();
+    element.currentTime = 150;
+    await controller.tickForTest();
+    element.currentTime = 175;
+    await controller.tickForTest();
+    setPlayerVideoId('two');
+    controller.navigateForTest('two');
+
+    element.emit('play');
+
+    expect(controller.snapshot().state).toBe('owned');
+  });
+
   it('mirrors a volume change into the engine while owned', async () => {
     const { controller, element, setPlayerVideoId } = setup();
     element.currentTime = 150;

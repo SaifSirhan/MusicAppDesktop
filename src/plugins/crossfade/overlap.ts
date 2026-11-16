@@ -253,7 +253,10 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
   };
 
   const playIncoming = (incoming: OverlapDeckId) => {
-    engine?.decks[incoming].play().then((started) => {
+    const target = engine?.decks[incoming];
+    if (!target || target.getCore().status === 'playing') return;
+
+    target.play().then((started) => {
       if (!started) abortOwnership();
     });
   };
@@ -395,10 +398,20 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
       return;
     }
 
-    if (machine.phase === 'blending') abortOwnership();
+    // YTM seeks its new video to 0 as the handoff navigation arrives; only a
+    // real jump inside the track is a user seek worth aborting the ramp for.
+    if (machine.phase === 'blending' && video.currentTime >= 2) {
+      abortOwnership();
+    }
   };
 
   const onPause = () => {
+    if (!video) return;
+
+    // YTM pauses its own video when the track ends, right before it navigates
+    // to the next one. That is the handoff, not a user pause.
+    if (video.ended || video.duration - video.currentTime < 0.5) return;
+
     if (machine.phase === 'blending') {
       abortOwnership();
       return;
@@ -410,11 +423,16 @@ export const createOverlapController = (options: OverlapControllerOptions) => {
   };
 
   const onPlay = () => {
-    if (machine.phase === 'owned' && machine.activeDeck) {
-      deck(machine.activeDeck)?.play().then((started) => {
-        if (!started) abortOwnership();
-      });
-    }
+    if (machine.phase !== 'owned' || !machine.activeDeck) return;
+
+    const active = deck(machine.activeDeck);
+    // play() reports false for a deck that is already playing; that is the
+    // state we want, so only start a stopped deck.
+    if (!active || active.getCore().status === 'playing') return;
+
+    active.play().then((started) => {
+      if (!started) abortOwnership();
+    });
   };
 
   const onVolume = () => {
