@@ -53,8 +53,9 @@ describe('loadTrack', () => {
   it('caches, reads, decodes and installs the buffer', async () => {
     const { deck, deps, cacheTrack, readTrack, removeTrack, decode } = setup();
 
-    await loadTrack(deps as never, deck, item);
+    const path = await loadTrack(deps as never, deck, item);
 
+    expect(path).toBe('C:/cache/song.mp3');
     expect(cacheTrack).toHaveBeenCalledWith('dQw4w9WgXcQ');
     expect(readTrack).toHaveBeenCalledWith('C:/cache/song.mp3');
     expect(decode).toHaveBeenCalled();
@@ -97,8 +98,7 @@ describe('loadTrack', () => {
       message: 'bot',
     } as never);
 
-    await loadTrack(deps as never, deck, item);
-
+    expect(await loadTrack(deps as never, deck, item)).toBeUndefined();
     expect(deck.getCore().status).toBe('error');
     expect(deck.getCore().error).toBe(errorCopy.PO_TOKEN);
   });

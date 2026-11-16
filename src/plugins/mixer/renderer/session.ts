@@ -150,7 +150,7 @@ export const loadTrack = async (
   deps: LoadDeps,
   deck: Deck,
   item: MixerQueueItem,
-): Promise<void> => {
+): Promise<string | undefined> => {
   const token = deck.beginLoading();
   const isCurrent = () => deck.getLoadToken() === token;
   const report = (progress: CacheProgress | null) => {
@@ -173,7 +173,7 @@ export const loadTrack = async (
     if (!result.ok) {
       fail(errorCopy[result.code]);
 
-      return;
+      return undefined;
     }
 
     const data = await deps.client.readTrack(result.track.path);
@@ -187,13 +187,17 @@ export const loadTrack = async (
       deps.client.removeTrack(result.track.path).catch(() => {});
       fail(DECODE_ERROR);
 
-      return;
+      return undefined;
     }
 
-    if (isCurrent()) deck.load(buffer, token);
+    if (isCurrent() && deck.load(buffer, token)) return result.track.path;
+
+    return undefined;
   } catch {
     // Cache or file-read failure: the track never reached the decoder.
     fail(errorCopy.NETWORK);
+
+    return undefined;
   } finally {
     report(null);
   }
