@@ -38,3 +38,23 @@ export const bufferPeaks = (
   buffer: AudioBuffer,
   buckets: number,
 ): Float32Array => computePeaks(buffer.getChannelData(0), buckets);
+
+export const barsFromPeaks = (
+  peaks: Float32Array,
+  columns: number,
+): number[] => {
+  const width = Math.floor(Number.isFinite(columns) ? columns : 0);
+  if (peaks.length === 0 || width <= 0) return [];
+
+  const bars: number[] = [];
+
+  for (let column = 0; column < width; column += 1) {
+    const index = Math.min(
+      peaks.length - 1,
+      Math.floor((column / width) * peaks.length),
+    );
+    bars.push(Math.min(1, Math.max(0, peaks[index])));
+  }
+
+  return bars;
+};
