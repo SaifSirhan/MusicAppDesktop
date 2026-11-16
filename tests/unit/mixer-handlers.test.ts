@@ -178,4 +178,33 @@ describe('createMixerBackend', () => {
       backend.removeTrack(join(cacheDir, 'a.mp3')),
     ).resolves.toBeUndefined();
   });
+
+  it('pins validated cache paths across evictions', async () => {
+    const { backend, cacheDir, evict } = setup();
+
+    backend.setPinnedTracks([
+      join(cacheDir, 'b.mp3'),
+      join(cacheDir, 'b.mp3'),
+      join('tmp', 'other', 'secret.mp3'),
+      42,
+    ]);
+
+    expect(backend.getPinnedTracks()).toEqual([join(cacheDir, 'b.mp3')]);
+
+    await backend.cacheTrack('dQw4w9WgXcQ');
+
+    expect(evict).toHaveBeenCalledWith(cacheDir, 100, [
+      join(cacheDir, 'a.mp3'),
+      join(cacheDir, 'b.mp3'),
+    ]);
+  });
+
+  it('replaces the pin set instead of appending', async () => {
+    const { backend, cacheDir } = setup();
+
+    backend.setPinnedTracks([join(cacheDir, 'b.mp3')]);
+    backend.setPinnedTracks([join(cacheDir, 'c.mp3')]);
+
+    expect(backend.getPinnedTracks()).toEqual([join(cacheDir, 'c.mp3')]);
+  });
 });

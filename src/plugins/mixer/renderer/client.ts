@@ -11,6 +11,7 @@ export type MixerClient = {
   cacheTrack: (videoId: string) => Promise<CacheTrackResult>;
   readTrack: (path: string) => Promise<ArrayBuffer>;
   removeTrack: (path: string) => Promise<void>;
+  setPinnedTracks: (paths: string[]) => Promise<void>;
   onCacheProgress: (listener: (progress: CacheProgress) => void) => () => void;
 };
 
@@ -23,6 +24,10 @@ export const createMixerClient = (ipc: MixerIpc): MixerClient => ({
 
   removeTrack: async (path) => {
     await ipc.invoke('mixer:remove-track', path);
+  },
+
+  setPinnedTracks: async (paths) => {
+    await ipc.invoke('mixer:set-pinned-tracks', paths);
   },
 
   onCacheProgress: (listener) => {

@@ -31,6 +31,28 @@ export const createMixerBackend = (deps: MixerBackendDeps) => {
     sendProgress,
   } = deps;
 
+  let pinnedPaths: string[] = [];
+
+  const normalizePinned = (paths: unknown): string[] => {
+    if (!Array.isArray(paths)) return [];
+
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    for (const value of paths) {
+      if (typeof value !== 'string' || !isPathInside(cacheDir, value)) continue;
+
+      const key = process.platform === 'win32' ? value.toLowerCase() : value;
+
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      result.push(value);
+    }
+
+    return result;
+  };
+
   return {
     async cacheTrack(videoId: unknown): Promise<CacheTrackResult> {
       if (typeof videoId !== 'string' || !VIDEO_ID_PATTERN.test(videoId)) {
@@ -65,7 +87,7 @@ export const createMixerBackend = (deps: MixerBackendDeps) => {
         try {
           // Never evict the file just returned: a skipped pre-existing file
           // keeps its old mtime and would otherwise be the first candidate.
-          evict(cacheDir, maxBytes, [result.path]);
+          evict(cacheDir, maxBytes, [result.path, ...pinnedPaths]);
         } catch {
           // Eviction is best-effort; the downloaded track is still valid.
         }
@@ -96,6 +118,14 @@ export const createMixerBackend = (deps: MixerBackendDeps) => {
         buffer.byteOffset,
         buffer.byteOffset + buffer.byteLength,
       ) as ArrayBuffer;
+    },
+
+    setPinnedTracks(paths: unknown): void {
+      pinnedPaths = normalizePinned(paths);
+    },
+
+    getPinnedTracks(): string[] {
+      return [...pinnedPaths];
     },
 
     async removeTrack(path: unknown): Promise<void> {

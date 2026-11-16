@@ -55,6 +55,17 @@ describe('createMixerClient', () => {
     );
   });
 
+  it('invokes the pin channel with the path list', async () => {
+    const { ipc } = fakeIpc();
+    const client = createMixerClient(ipc as never);
+
+    await client.setPinnedTracks(['/tmp/mixer-cache/a.mp3']);
+
+    expect(ipc.invoke).toHaveBeenCalledWith('mixer:set-pinned-tracks', [
+      '/tmp/mixer-cache/a.mp3',
+    ]);
+  });
+
   it('subscribes and unsubscribes from progress events', () => {
     const { ipc, emit } = fakeIpc();
     const client = createMixerClient(ipc as never);

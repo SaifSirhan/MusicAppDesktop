@@ -35,6 +35,9 @@ export const onMainLoad = ({
   );
   ipc.handle('mixer:read-track', (path: unknown) => backend.readTrack(path));
   ipc.handle('mixer:remove-track', (path: unknown) => backend.removeTrack(path));
+  ipc.handle('mixer:set-pinned-tracks', (paths: unknown) =>
+    backend.setPinnedTracks(paths),
+  );
 
   // Spec §8: the cache is evicted at startup as well as after each cache.
   // Non-blocking and never throws: startup eviction is best-effort.
